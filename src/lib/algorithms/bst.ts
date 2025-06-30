@@ -30,21 +30,9 @@
  * ```
  */
 
-/**
- * Represents a node in a binary tree structure
- * 
- * This is a simplified version of the BinaryTreeNode for use in algorithm
- * calculations. It focuses on the essential tree structure without UI-specific
- * properties.
- */
-export interface BinaryTreeNode {
-  value: number;
-  left?: BinaryTreeNode;
-  right?: BinaryTreeNode;
-  id?: string;
-  highlighted?: boolean;
-  color?: string;
-}
+// Imports for declarative state system
+import type { BinaryTreeNode } from '../types/binary-tree-node.js';
+import { BinaryTreeStateBuilder } from '../binary-tree-state-builder.js';
 
 /**
  * Represents the decision made at each step during tree traversal
@@ -844,4 +832,201 @@ export function generateRightRotationSteps(
   });
 
   return steps;
+}
+
+/**
+ * Enhanced BST algorithms with declarative state generation support
+ * Extends the existing imperative algorithms with new declarative methods
+ */
+export class BST {
+  /**
+   * Generate complete state sequence for search operation
+   * Returns array of BinaryTreeNode states showing the search process
+   */
+  static generateSearchStates(tree: BinaryTreeNode | null, value: number): BinaryTreeNode[] {
+    const states: BinaryTreeNode[] = [];
+    
+    if (!tree) {
+      return states;
+    }
+
+    // Clone and reset tree to default state
+    let currentTree = BinaryTreeStateBuilder.resetToDefault(tree);
+    states.push(BinaryTreeStateBuilder.cloneTree(currentTree)!);
+
+    // Traverse the tree
+    let current = currentTree;
+    while (current) {
+      // Mark current node as active
+      currentTree = BinaryTreeStateBuilder.setNodeState(currentTree, current.value, "active");
+      
+      if (current.value === value) {
+        // Found target - mark as selected
+        currentTree = BinaryTreeStateBuilder.setNodeState(currentTree, current.value, "selected");
+        states.push(BinaryTreeStateBuilder.cloneTree(currentTree)!);
+        break;
+      } else if (value < current.value) {
+        // Show traversal direction
+        currentTree = BinaryTreeStateBuilder.setTraversalDirection(currentTree, current.value, "left");
+        states.push(BinaryTreeStateBuilder.cloneTree(currentTree)!);
+        
+        if (current.left) {
+          // Reset current node and move to left
+          currentTree = BinaryTreeStateBuilder.setNodeState(currentTree, current.value, "default");
+          currentTree = BinaryTreeStateBuilder.setTraversalDirection(currentTree, current.value, null);
+          current = this.findNodeByValue(currentTree, current.left.value);
+        } else {
+          // Not found
+          break;
+        }
+      } else {
+        // Show traversal direction
+        currentTree = BinaryTreeStateBuilder.setTraversalDirection(currentTree, current.value, "right");
+        states.push(BinaryTreeStateBuilder.cloneTree(currentTree)!);
+        
+        if (current.right) {
+          // Reset current node and move to right
+          currentTree = BinaryTreeStateBuilder.setNodeState(currentTree, current.value, "default");
+          currentTree = BinaryTreeStateBuilder.setTraversalDirection(currentTree, current.value, null);
+          current = this.findNodeByValue(currentTree, current.right.value);
+        } else {
+          // Not found
+          break;
+        }
+      }
+    }
+
+    return states;
+  }
+
+  /**
+   * Generate complete state sequence for insert operation
+   * Returns array of BinaryTreeNode states showing the insertion process
+   */
+  static generateInsertStates(tree: BinaryTreeNode | null, value: number): BinaryTreeNode[] {
+    const states: BinaryTreeNode[] = [];
+    
+    // If empty tree, create new node
+    if (!tree) {
+      const newNode = BinaryTreeStateBuilder.createNode(value, { state: "new" });
+      states.push(newNode);
+      return states;
+    }
+
+    // Clone and reset tree
+    let currentTree = BinaryTreeStateBuilder.resetToDefault(tree);
+    states.push(BinaryTreeStateBuilder.cloneTree(currentTree)!);
+
+    // Navigate to insertion point
+    const insertPath: number[] = [];
+    let current = currentTree;
+    
+    while (current) {
+      // Mark current node as active
+      currentTree = BinaryTreeStateBuilder.setNodeState(currentTree, current.value, "active");
+      insertPath.push(current.value);
+      
+      if (value === current.value) {
+        // Duplicate value - mark as selected and stop
+        currentTree = BinaryTreeStateBuilder.setNodeState(currentTree, current.value, "selected");
+        states.push(BinaryTreeStateBuilder.cloneTree(currentTree)!);
+        return states;
+      } else if (value < current.value) {
+        // Show traversal direction
+        currentTree = BinaryTreeStateBuilder.setTraversalDirection(currentTree, current.value, "left");
+        states.push(BinaryTreeStateBuilder.cloneTree(currentTree)!);
+        
+        if (current.left) {
+          // Reset current node and continue
+          currentTree = BinaryTreeStateBuilder.setNodeState(currentTree, current.value, "default");
+          currentTree = BinaryTreeStateBuilder.setTraversalDirection(currentTree, current.value, null);
+          current = this.findNodeByValue(currentTree, current.left.value);
+        } else {
+          // Insert here as left child
+          currentTree = BinaryTreeStateBuilder.setNodeState(currentTree, current.value, "default");
+          currentTree = BinaryTreeStateBuilder.setTraversalDirection(currentTree, current.value, null);
+          currentTree = BinaryTreeStateBuilder.insertNode(currentTree, value);
+          states.push(BinaryTreeStateBuilder.cloneTree(currentTree)!);
+          break;
+        }
+      } else {
+        // Show traversal direction
+        currentTree = BinaryTreeStateBuilder.setTraversalDirection(currentTree, current.value, "right");
+        states.push(BinaryTreeStateBuilder.cloneTree(currentTree)!);
+        
+        if (current.right) {
+          // Reset current node and continue
+          currentTree = BinaryTreeStateBuilder.setNodeState(currentTree, current.value, "default");
+          currentTree = BinaryTreeStateBuilder.setTraversalDirection(currentTree, current.value, null);
+          current = this.findNodeByValue(currentTree, current.right.value);
+        } else {
+          // Insert here as right child
+          currentTree = BinaryTreeStateBuilder.setNodeState(currentTree, current.value, "default");
+          currentTree = BinaryTreeStateBuilder.setTraversalDirection(currentTree, current.value, null);
+          currentTree = BinaryTreeStateBuilder.insertNode(currentTree, value);
+          states.push(BinaryTreeStateBuilder.cloneTree(currentTree)!);
+          break;
+        }
+      }
+    }
+
+    return states;
+  }
+
+  /**
+   * Generate complete state sequence for delete operation
+   * Returns array of BinaryTreeNode states showing the deletion process
+   */
+  static generateDeleteStates(tree: BinaryTreeNode | null, value: number): (BinaryTreeNode | null)[] {
+    const states: (BinaryTreeNode | null)[] = [];
+    
+    if (!tree) {
+      return states;
+    }
+
+    // First, search for the node to ensure it exists
+    const searchStates = this.generateSearchStates(tree, value);
+    const lastSearchState = searchStates[searchStates.length - 1];
+    
+    // Check if node was found
+    const foundNode = this.findNodeByValue(lastSearchState, value);
+    if (!foundNode || foundNode.state !== "selected") {
+      return searchStates; // Return search states showing "not found"
+    }
+
+    // Add search states (except final selection)
+    states.push(...searchStates.slice(0, -1));
+
+    // Mark node for deletion
+    let currentTree = BinaryTreeStateBuilder.resetToDefault(tree);
+    currentTree = BinaryTreeStateBuilder.setNodeState(currentTree, value, "deleted");
+    states.push(BinaryTreeStateBuilder.cloneTree(currentTree)!);
+
+    // Perform actual deletion
+    currentTree = BinaryTreeStateBuilder.deleteNode(currentTree, value);
+    if (currentTree) {
+      currentTree = BinaryTreeStateBuilder.resetToDefault(currentTree);
+      states.push(BinaryTreeStateBuilder.cloneTree(currentTree)!);
+    } else {
+      states.push(null);
+    }
+
+    return states;
+  }
+
+  /**
+   * Helper method to find a node by value in the tree
+   */
+  private static findNodeByValue(tree: BinaryTreeNode | null, value: number): BinaryTreeNode | null {
+    if (!tree) return null;
+    if (tree.value === value) return tree;
+    
+    const leftResult = this.findNodeByValue(tree.left, value);
+    if (leftResult) return leftResult;
+    
+    return this.findNodeByValue(tree.right, value);
+  }
+
+  // Legacy support - keep existing methods for backward compatibility
+  // These can be deprecated once the migration is complete
 }

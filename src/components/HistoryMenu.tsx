@@ -1,11 +1,15 @@
 import { type ReactNode, useState } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
-import { History, Play, RotateCcw } from "lucide-react";
+import { History, Play, RotateCcw, Undo, Redo } from "lucide-react";
 
 export interface HistoryOperation {
-  id: string;
+  id?: string;
   type: string;
   description: string;
+  value?: number;
+  timestamp?: number;
+  resultingTree?: any;
+  states?: any[];
 }
 
 interface HistoryMenuProps {
@@ -14,6 +18,10 @@ interface HistoryMenuProps {
   onSelectOperation: (index: number) => void;
   getOperationIcon: (operation: HistoryOperation) => ReactNode;
   onClearHistory: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
   isExecuting?: boolean;
 }
 
@@ -23,6 +31,10 @@ export function HistoryMenu({
   onSelectOperation,
   getOperationIcon,
   onClearHistory,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
   isExecuting = false
 }: HistoryMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -132,8 +144,39 @@ export function HistoryMenu({
               </div>
             </div>
             
-            {/* Clear History Button */}
-            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-zinc-600">
+            {/* History Controls & Clear History */}
+            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-zinc-600 space-y-3">
+              {/* Undo/Redo Controls */}
+              {(onUndo || onRedo) && (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onUndo?.();
+                    }}
+                    disabled={!canUndo || isExecuting}
+                    className="flex items-center justify-center gap-2 p-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-700/50 rounded-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Undo className="w-4 h-4" />
+                    Undo
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onRedo?.();
+                    }}
+                    disabled={!canRedo || isExecuting}
+                    className="flex items-center justify-center gap-2 p-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-700/50 rounded-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Redo className="w-4 h-4" />
+                    Redo
+                  </button>
+                </div>
+              )}
+              
+              {/* Clear History Button */}
               <button
                 onClick={(e) => {
                   e.preventDefault();

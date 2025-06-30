@@ -1,14 +1,37 @@
 # Structures
 
-An interactive web application for visualizing and learning about data structures and algorithms. Built with React, TypeScript, and modern web technologies.
+An interactive web application for visualizing and learning about data structures and algorithms, built in React.
 
-## Features
+## Stack
 
-- **Binary Search Tree Visualizer**: Interactive visualization of BST operations including insertion, deletion, and search
-- **Operation History**: Track and replay operations with a comprehensive history system
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
-- **Dark/Light Theme**: Toggle between dark and light modes
-- **Smooth Animations**: Beautiful transitions and animations powered by Motion
+This project uses React v19 in TypeScript. TanStack Router is used for routing. Tailwind is used for styling and Motion is used for animation.
+
+The core data structure visualization is powered by D3.
+
+### Features
+
+## Data structures supported
+
+- [ ] BST
+  - [x] Insert
+  - [x] Search
+  - [ ] Remove
+  - [ ] Pred/succ
+  - [x] Min/max
+- [ ] AVL tree
+  - [ ] Tree rotations
+  - [ ] Insert
+  - [ ] Search
+  - [ ] Remove
+  - [ ] Pred/succ
+  - [ ] Min/max
+- [ ] 
+
+## Operations TODO
+
+- [ ] Share as URL
+- [ ] Visualization as line tracing
+
 
 ## Getting Started
 
@@ -59,49 +82,13 @@ Run the test suite with:
 npm run test
 ```
 
-## Project Structure
-
-```
-src/
-├── components/           # React components
-│   ├── BinaryTree/      # BST visualization components
-│   ├── ui/              # Reusable UI components
-│   └── ...
-├── lib/                 # Utility functions and algorithms
-│   ├── algorithms/      # Data structure implementations
-│   └── ...
-├── routes/              # Application routes
-└── styles.css          # Global styles
-```
-
-## Technology Stack
-
-- **React 19** - Modern React with latest features
-- **TypeScript** - Type-safe JavaScript
-- **TanStack Router** - File-based routing
-- **Tailwind CSS** - Utility-first CSS framework
-- **Motion** - Animation library
-- **D3.js** - Data visualization
-- **Vite** - Fast build tool
-- **Vitest** - Testing framework
-
-## Available Data Structures
-
-### Binary Search Tree (BST)
-- Interactive insertion and deletion
-- Search operations with visual feedback
-- Tree traversal animations
-- Balance factor visualization
-
-*More data structures coming soon!*
-
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+5. Open a pull request
 
 ## License
 

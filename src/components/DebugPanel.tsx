@@ -1,82 +1,43 @@
 /**
- * Debug Panel Component
+ * Debug Panel Component (Declarative Version)
  * 
  * A comprehensive debug panel that displays raw data structures and internal state
  * for debugging purposes. Only rendered in development mode.
  * 
- * This component can be used independently or integrated into other components
- * to provide detailed debugging information about tree state, operations, and steps.
- * 
- * @example
- * ```tsx
- * <DebugPanel
- *   treeData={currentTree}
- *   currentStep={activeStep}
- *   historyController={controller}
- *   position="bottom-left"
- * />
- * ```
+ * This component matches the look and functionality of the deprecated version
+ * but works with the declarative BST system.
  */
 
-import React, { useState } from "react";
-import type { BinaryTreeNode, TraversalStep, TreeOperation, TreeTypeConfig } from "./BinaryTree/types";
-import type { BinaryTreeVisualState, VisualStateComputer } from "./BinaryTree/visual-state";
+import React, { useState, useMemo } from 'react';
+import type { BinaryTreeNode, BinaryTreeState } from '../lib/types/binary-tree-node';
+import { TransitionDetector } from '../lib/animation/transition-detector';
+import { AnimationMapper } from '../lib/animation/animation-mapper';
+import { BinaryTreeValidator } from '../lib/binary-tree-validator';
 
-/**
- * Props for the DebugPanel component
- */
 interface DebugPanelProps {
-  /** Current tree data structure */
-  treeData?: BinaryTreeNode;
-  /** Current traversal step (if any) */
-  currentStep?: TraversalStep | null;
-  /** Current step index in traversal sequence */
-  currentStepIndex?: number;
-  /** All traversal steps */
-  traversalSteps?: TraversalStep[];
-  /** Currently selected operation */
-  selectedOperation?: TreeOperation;
-  /** Tree type configuration */
-  treeType?: TreeTypeConfig;
-  /** History controller instance (if available) */
-  historyController?: any;
-  /** Visual state computer for displaying current visual state */
-  visualStateComputer?: VisualStateComputer;
-  /** Additional debug data to display */
-  additionalData?: Record<string, any>;
-  /** Position of the debug panel */
+  currentTree: BinaryTreeNode | null;
+  previousTree: BinaryTreeNode | null;
+  selectedOperationIndex: number;
+  currentStepIndex: number;
+  operations: any[];
+  operationStates?: BinaryTreeState[];
   position?: 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right';
-  /** Custom CSS classes */
   className?: string;
 }
 
-/**
- * Debug Panel Component
- * 
- * Provides an expandable debug interface showing:
- * - Current tree structure
- * - Active traversal step details
- * - Operation history
- * - Environment information
- * - Custom debug data
- */
 export const DebugPanel: React.FC<DebugPanelProps> = ({
-  treeData,
-  currentStep,
-  currentStepIndex = -1,
-  traversalSteps = [],
-  selectedOperation,
-  treeType,
-  historyController,
-  visualStateComputer,
-  additionalData,
+  currentTree,
+  previousTree,
+  selectedOperationIndex,
+  currentStepIndex,
+  operations,
+  operationStates,
   position = 'bottom-left',
   className = '',
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<'tree' | 'visual-state' | 'operations'>(() => {
-    // Default to operations tab if we have traversal steps, otherwise tree
-    return (traversalSteps && traversalSteps.length > 0) ? 'operations' : 'tree';
+    return (operations && operations.length > 0) ? 'operations' : 'tree';
   });
   const [expandedOperations, setExpandedOperations] = useState<Set<string>>(new Set());
 
@@ -85,6 +46,26 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
     return null;
   }
 
+  // Detect transitions between previous and current tree
+  const transitions = useMemo(() => {
+    if (!previousTree && !currentTree) return [];
+    return TransitionDetector.detectTransitions(previousTree, currentTree);
+  }, [previousTree, currentTree]);
+
+  // Map transitions to animations
+  const animations = useMemo(() => {
+    return transitions.map(transition => ({
+      transition,
+      animation: AnimationMapper.getAnimation(transition)
+    }));
+  }, [transitions]);
+
+  // Validate current tree
+  const validation = useMemo(() => {
+    if (!currentTree) return { isValid: true, errors: [] };
+    return BinaryTreeValidator.validateTree(currentTree);
+  }, [currentTree]);
+
   const positionClasses = {
     'bottom-left': 'bottom-6 left-6',
     'bottom-right': 'bottom-6 right-6',
@@ -92,57 +73,68 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
     'top-right': 'top-6 right-6',
   };
 
-  const getTreeStructure = (node: BinaryTreeNode | undefined, depth = 0): any => {
+  const getBSTTreeStructure = (node: BinaryTreeNode | null, depth = 0): any => {
     if (!node) return null;
     return {
       value: node.value,
-      id: node.id,
-      highlighted: node.highlighted,
-      color: node.color,
+      state: node.state,
+      traversalDirection: node.traversalDirection,
       depth,
-      left: getTreeStructure(node.left, depth + 1),
-      right: getTreeStructure(node.right, depth + 1),
+      left: getBSTTreeStructure(node.left, depth + 1),
+      right: getBSTTreeStructure(node.right, depth + 1),
     };
   };
 
   const getOperationsData = () => {
-    if (!traversalSteps || traversalSteps.length === 0) return {};
+    if (!operations || operations.length === 0) return {};
     
-    // Group steps by operation
+    // Group operations and create detailed step information
     const operationGroups: Record<string, any[]> = {};
     
-    traversalSteps.forEach((step, index) => {
-      const operationKey = `${step.operation}_${step.metadata.searchValue || step.metadata.insertValue || step.metadata.deleteValue || 'unknown'}`;
+    operations.forEach((operation, index) => {
+      const operationKey = `${operation.type || operation.operation || 'operation'}_${operation.value || operation.searchValue || operation.insertValue || operation.deleteValue || index}`;
       
       if (!operationGroups[operationKey]) {
         operationGroups[operationKey] = [];
       }
       
-      operationGroups[operationKey].push({
-        stepIndex: index,
-        isCurrent: index === currentStepIndex,
-        id: step.id,
-        operation: step.operation,
-        decision: step.decision,
-        currentNode: step.currentNode ? {
-          value: step.currentNode.value,
-          left: step.currentNode.left?.value || null,
-          right: step.currentNode.right?.value || null,
-        } : null,
-        nextNode: step.nextNode ? {
-          value: step.nextNode.value,
-          left: step.nextNode.left?.value || null,
-          right: step.nextNode.right?.value || null,
-        } : null,
+      // Create detailed step information similar to deprecated version
+      const stepData = {
+        operationIndex: index,
+        isCurrent: index === selectedOperationIndex,
+        stepIndex: currentStepIndex,
+        id: operation.id || `op-${index}`,
+        operation: operation.type || operation.operation,
+        description: operation.description || `${operation.type || 'Operation'} ${operation.value || ''}`,
+        value: operation.value,
+        currentState: operationStates ? operationStates[Math.min(currentStepIndex, operationStates.length - 1)] : null,
+        
+        // Extract step-level details if available from states
         metadata: {
-          description: step.metadata.description,
-          searchValue: step.metadata.searchValue,
-          insertValue: step.metadata.insertValue,
-          deleteValue: step.metadata.deleteValue,
-          comparison: step.metadata.comparison,
-          isComplete: step.metadata.isComplete,
-        }
-      });
+          description: operation.description || `Performing ${operation.type || 'operation'}${operation.value ? ` with value ${operation.value}` : ''}`,
+          searchValue: operation.value,
+          insertValue: operation.type === 'insert' ? operation.value : undefined,
+          deleteValue: operation.type === 'delete' ? operation.value : undefined,
+          operationType: operation.type,
+          timestamp: operation.timestamp,
+          isComplete: currentStepIndex >= (operationStates?.length || 1) - 1,
+        },
+        
+        // Include transitions and validation for this step
+        transitions: transitions,
+        validation: validation,
+        
+        // Tree state information
+        currentTree: currentTree ? {
+          value: currentTree.value,
+          state: currentTree.state,
+          traversalDirection: currentTree.traversalDirection,
+          left: currentTree.left?.value || null,
+          right: currentTree.right?.value || null,
+        } : null,
+      };
+      
+      operationGroups[operationKey].push(stepData);
     });
     
     return operationGroups;
@@ -150,19 +142,26 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
 
   const debugData = {
     tree: {
-      structure: getTreeStructure(treeData),
-      nodeCount: treeData ? countNodes(treeData) : 0,
-      maxDepth: treeData ? getMaxDepth(treeData) : 0,
-      isBalanced: treeData ? isTreeBalanced(treeData) : null,
+      structure: getBSTTreeStructure(currentTree),
+      nodeCount: currentTree ? countNodes(currentTree) : 0,
+      maxDepth: currentTree ? getMaxDepth(currentTree) : 0,
+      isBalanced: currentTree ? isTreeBalanced(currentTree) : null,
     },
     operations: getOperationsData(),
-    custom: additionalData,
+    custom: {
+      transitions,
+      animations,
+      validation,
+      selectedOperationIndex,
+      currentStepIndex,
+      operationStatesLength: operationStates?.length || 0,
+    },
   };
 
   const tabs = [
     { id: 'tree', label: 'Tree', icon: '🌳' },
-    { id: 'visual-state', label: 'Visual State', icon: '�', disabled: !visualStateComputer },
-    { id: 'operations', label: 'Operations', icon: '⚡', disabled: !traversalSteps || traversalSteps.length === 0 },
+    { id: 'visual-state', label: 'Visual State', icon: '🎨', disabled: false },
+    { id: 'operations', label: 'Operations', icon: '⚡', disabled: !operations || operations.length === 0 },
   ];
 
   const renderTabContent = () => {
@@ -187,121 +186,101 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
   };
 
   const renderVisualStateTab = () => {
-    if (!visualStateComputer) {
-      return (
-        <div className="text-white/60 text-xs italic p-2">
-          No visual state computer available
+    return (
+      <div className="space-y-3">
+        {/* Declarative State Summary */}
+        <div className="bg-black/40 rounded p-2 border border-white/20">
+          <div className="text-xs text-white/80 mb-2 flex items-center gap-2">
+            <span className="text-blue-300">🎨 Declarative State Summary</span>
+          </div>
+          <div className="text-xs space-y-1">
+            <div>Current Operation: <span className="text-yellow-300">{selectedOperationIndex >= 0 ? `${selectedOperationIndex + 1} of ${operations.length}` : 'None'}</span></div>
+            <div>Current Step: <span className="text-yellow-300">{currentStepIndex >= 0 ? `${currentStepIndex + 1}` : 'None'}</span></div>
+            <div>Detected Transitions: <span className="text-orange-300">{transitions.length}</span></div>
+            <div>Tree Valid: <span className={validation.isValid ? "text-green-300" : "text-red-300"}>{validation.isValid ? 'Yes' : 'No'}</span></div>
+          </div>
         </div>
-      );
-    }
 
-    try {
-      const visualState: BinaryTreeVisualState = visualStateComputer.computeVisualState();
-      
-      return (
-        <div className="space-y-3">
-          {/* Visual State Summary */}
+        {/* Detected Transitions */}
+        {transitions.length > 0 && (
           <div className="bg-black/40 rounded p-2 border border-white/20">
             <div className="text-xs text-white/80 mb-2 flex items-center gap-2">
-              <span className="text-blue-300">🎨 Visual State Summary</span>
+              <span className="text-orange-300">🔄 Detected Transitions</span>
             </div>
             <div className="text-xs space-y-1">
-              <div>Is Traversing: <span className={visualState.isTraversing ? "text-green-300" : "text-red-300"}>{visualState.isTraversing ? 'Yes' : 'No'}</span></div>
-              <div>Current Node: <span className="text-yellow-300">{visualState.currentNode ?? 'None'}</span></div>
-              <div>Visited Nodes: <span className="text-orange-300">{visualState.visitedNodes.size}</span></div>
-              <div>Highlight Path: <span className="text-green-300">{visualState.highlightPath.length}</span></div>
+              {transitions.map((transition, index) => (
+                <div key={index} className="bg-black/20 rounded p-1">
+                  <div className="flex gap-2">
+                    <span className="text-blue-300">{transition.type}:</span>
+                    <span className="text-yellow-300">{transition.path.join(' → ') || 'root'}</span>
+                  </div>
+                  {transition.from !== undefined && (
+                    <div className="text-gray-300 ml-2">From: {JSON.stringify(transition.from)}</div>
+                  )}
+                  {transition.to !== undefined && (
+                    <div className="text-gray-300 ml-2">To: {JSON.stringify(transition.to)}</div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
+        )}
 
-          {/* Visited Nodes */}
-          {visualState.visitedNodes.size > 0 && (
-            <div className="bg-black/40 rounded p-2 border border-white/20">
-              <div className="text-xs text-white/80 mb-2 flex items-center gap-2">
-                <span className="text-orange-300">🟠 Visited Nodes</span>
-              </div>
-              <div className="text-xs">
-                {Array.from(visualState.visitedNodes).sort((a, b) => a - b).map(nodeValue => (
-                  <span key={nodeValue} className="inline-block bg-orange-500/20 text-orange-300 px-1 py-0.5 rounded mr-1 mb-1">
-                    {nodeValue}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Highlight Path */}
-          {visualState.highlightPath.length > 0 && (
-            <div className="bg-black/40 rounded p-2 border border-white/20">
-              <div className="text-xs text-white/80 mb-2 flex items-center gap-2">
-                <span className="text-green-300">🟢 Highlight Path</span>
-              </div>
-              <div className="text-xs">
-                {visualState.highlightPath.map((nodeValue, index) => (
-                  <span key={`${nodeValue}-${index}`} className="inline-flex items-center">
-                    <span className="bg-green-500/20 text-green-300 px-1 py-0.5 rounded">
-                      {nodeValue}
-                    </span>
-                    {index < visualState.highlightPath.length - 1 && (
-                      <span className="text-white/40 mx-1">→</span>
-                    )}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Animation Instructions */}
-          {visualState.animationInstructions && (
-            <div className="bg-black/40 rounded p-2 border border-white/20">
-              <div className="text-xs text-white/80 mb-2 flex items-center gap-2">
-                <span className="text-purple-300">🎬 Animation Instructions</span>
-              </div>
-              <div className="text-xs space-y-1">
-                <div>Direction: <span className="text-yellow-300">{visualState.animationInstructions.stepDirection || 'none'}</span></div>
-                <div>Instructions: <span className="text-green-300">{visualState.animationInstructions.instructions.length}</span></div>
-              </div>
-              {visualState.animationInstructions.instructions.length > 0 && (
-                <div className="mt-2 space-y-1">
-                  {visualState.animationInstructions.instructions.map((instruction, index) => (
-                    <div key={index} className="bg-black/20 rounded p-1 text-xs">
-                      <div className="flex gap-2">
-                        <span className="text-blue-300">{instruction.type}:</span>
-                        {instruction.type === 'node' && 'nodeValue' in instruction && (
-                          <span className="text-yellow-300">{instruction.nodeValue}</span>
-                        )}
-                        {instruction.type === 'link' && 'fromValue' in instruction && 'toValue' in instruction && (
-                          <span className="text-yellow-300">{instruction.fromValue} → {instruction.toValue}</span>
-                        )}
-                        <span className="text-green-300">{instruction.animation}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Raw Visual State */}
+        {/* Inferred Animations */}
+        {animations.length > 0 && (
           <div className="bg-black/40 rounded p-2 border border-white/20">
             <div className="text-xs text-white/80 mb-2 flex items-center gap-2">
-              <span className="text-gray-300">📋 Raw Visual State</span>
+              <span className="text-purple-300">🎬 Inferred Animations</span>
             </div>
-            <pre className="text-xs font-mono text-green-300 bg-black/30 rounded p-2 overflow-x-auto whitespace-pre-wrap">
-              {JSON.stringify({
-                ...visualState,
-                visitedNodes: Array.from(visualState.visitedNodes),
-              }, null, 2)}
-            </pre>
+            <div className="text-xs space-y-1">
+              {animations.map((anim, index) => (
+                <div key={index} className="bg-black/20 rounded p-1">
+                  <div className="flex gap-2">
+                    <span className="text-blue-300">{anim.transition.type}:</span>
+                    {anim.animation && (
+                      <>
+                        <span className="text-green-300">{anim.animation.type}</span>
+                        <span className="text-yellow-300">({anim.animation.duration}ms)</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
+        )}
+
+        {/* Validation Errors */}
+        {!validation.isValid && (
+          <div className="bg-black/40 rounded p-2 border border-red-500/50">
+            <div className="text-xs text-white/80 mb-2 flex items-center gap-2">
+              <span className="text-red-300">❌ Validation Errors</span>
+            </div>
+            <div className="text-xs space-y-1">
+              {validation.errors.map((error, index) => (
+                <div key={index} className="text-red-300">{error}</div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Raw Declarative State */}
+        <div className="bg-black/40 rounded p-2 border border-white/20">
+          <div className="text-xs text-white/80 mb-2 flex items-center gap-2">
+            <span className="text-gray-300">📋 Raw Declarative State</span>
+          </div>
+          <pre className="text-xs font-mono text-green-300 bg-black/30 rounded p-2 overflow-x-auto whitespace-pre-wrap">
+            {JSON.stringify({
+              currentTree: getBSTTreeStructure(currentTree),
+              transitions,
+              validation,
+              selectedOperationIndex,
+              currentStepIndex,
+            }, null, 2)}
+          </pre>
         </div>
-      );
-    } catch (error) {
-      return (
-        <div className="text-red-300 text-xs p-2">
-          Error computing visual state: {error instanceof Error ? error.message : 'Unknown error'}
-        </div>
-      );
-    }
+      </div>
+    );
   };
 
   const renderOperationsTab = () => {
@@ -339,7 +318,7 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
                 <span className="text-blue-300 font-mono flex items-center gap-2">
                   <span className="text-white/60">{isExpanded ? '▼' : '▶'}</span>
                   <span className="capitalize">{operationType}</span>
-                  <span className="text-white/60 text-xs">({stepCount} steps)</span>
+                  <span className="text-white/60 text-xs">({stepCount} ops)</span>
                 </span>
               </button>
               
@@ -357,6 +336,8 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
     );
   };
 
+  const hasActiveOperation = selectedOperationIndex >= 0 && currentStepIndex >= 0;
+
   return (
     <div className={`absolute ${positionClasses[position]} bg-black/80 backdrop-blur-sm text-white rounded-lg text-sm pointer-events-auto z-50 ${className}`}>
       <button
@@ -365,7 +346,12 @@ export const DebugPanel: React.FC<DebugPanelProps> = ({
       >
         <span className="text-orange-300 font-mono flex items-center gap-1">
           🐛 Debug
-          {currentStep && <span className="text-red-400 animate-pulse">●</span>}
+          {hasActiveOperation && <span className="text-red-400 animate-pulse">●</span>}
+          {transitions.length > 0 && (
+            <span className="bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center ml-1">
+              {transitions.length}
+            </span>
+          )}
         </span>
         <span className="text-white/60">{isExpanded ? '▼' : '▶'}</span>
       </button>

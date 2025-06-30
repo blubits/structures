@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as BstRouteImport } from './routes/bst'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BstOldRouteImport } from './routes/bst.old'
+import { Route as BstNewRouteImport } from './routes/bst.new'
 
 const BstRoute = BstRouteImport.update({
   id: '/bst',
@@ -22,31 +24,47 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BstOldRoute = BstOldRouteImport.update({
+  id: '/old',
+  path: '/old',
+  getParentRoute: () => BstRoute,
+} as any)
+const BstNewRoute = BstNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => BstRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/bst': typeof BstRoute
+  '/bst': typeof BstRouteWithChildren
+  '/bst/new': typeof BstNewRoute
+  '/bst/old': typeof BstOldRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/bst': typeof BstRoute
+  '/bst': typeof BstRouteWithChildren
+  '/bst/new': typeof BstNewRoute
+  '/bst/old': typeof BstOldRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/bst': typeof BstRoute
+  '/bst': typeof BstRouteWithChildren
+  '/bst/new': typeof BstNewRoute
+  '/bst/old': typeof BstOldRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/bst'
+  fullPaths: '/' | '/bst' | '/bst/new' | '/bst/old'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/bst'
-  id: '__root__' | '/' | '/bst'
+  to: '/' | '/bst' | '/bst/new' | '/bst/old'
+  id: '__root__' | '/' | '/bst' | '/bst/new' | '/bst/old'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  BstRoute: typeof BstRoute
+  BstRoute: typeof BstRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +83,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bst/old': {
+      id: '/bst/old'
+      path: '/old'
+      fullPath: '/bst/old'
+      preLoaderRoute: typeof BstOldRouteImport
+      parentRoute: typeof BstRoute
+    }
+    '/bst/new': {
+      id: '/bst/new'
+      path: '/new'
+      fullPath: '/bst/new'
+      preLoaderRoute: typeof BstNewRouteImport
+      parentRoute: typeof BstRoute
+    }
   }
 }
 
+interface BstRouteChildren {
+  BstNewRoute: typeof BstNewRoute
+  BstOldRoute: typeof BstOldRoute
+}
+
+const BstRouteChildren: BstRouteChildren = {
+  BstNewRoute: BstNewRoute,
+  BstOldRoute: BstOldRoute,
+}
+
+const BstRouteWithChildren = BstRoute._addFileChildren(BstRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  BstRoute: BstRoute,
+  BstRoute: BstRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

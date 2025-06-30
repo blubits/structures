@@ -31,7 +31,6 @@ export {
   generateBSTFindMaxSteps,
   generateLeftRotationSteps,
   generateRightRotationSteps,
-  type BinaryTreeNode,
   type TraversalStep,
   type TraversalDecision,
   type RotationType,
