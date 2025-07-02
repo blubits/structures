@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import { AnimationController } from '../../../lib/core/AnimationController';
+import { processBinaryTreeAnimations } from './animations';
 import type { BinaryTreeNode } from '../types';
 import type { AnimationHint } from '../../../lib/core/types';
 
@@ -324,33 +324,13 @@ export function renderBinaryTree(
           .remove()
         )
     )
-    // Execute animations programmatically for each link
+    // Execute animations using the new generic system
     .each(function(d: any) {
       const linkData = d as LinkData;
       if (visualState.animationHints && visualState.animationHints.length > 0) {
-        // Create node data objects for the animation context
-        const sourceNodeData = {
-          value: linkData.sourceValue,
-          left: null,
-          right: null,
-          state: 'default' as const
-        };
-        
-        const targetNodeData = {
-          value: linkData.targetValue,
-          left: null,
-          right: null,
-          state: 'default' as const
-        };
-
-        // Execute all animations that target this specific link
-        AnimationController.executeLinkAnimations(
-          this as Element,
-          linkData.id,
-          sourceNodeData,
-          targetNodeData,
-          visualState.animationHints
-        );
+        // Store element reference for the link
+        const linkElement = this as Element;
+        linkElement.setAttribute('data-link-id', linkData.id);
       }
     });
 
@@ -409,17 +389,13 @@ export function renderBinaryTree(
           .remove()
         )
     )
-    // Execute animations programmatically for each node
+    // Execute animations using the new generic system
     .each(function(d: any) {
       const nodeData = d as NodeData;
       if (visualState.animationHints && visualState.animationHints.length > 0) {
-        // Execute all animations that target this specific node
-        AnimationController.executeNodeAnimations(
-          this as Element,
-          nodeData.value,
-          nodeData,
-          visualState.animationHints
-        );
+        // Store element reference for the node
+        const nodeElement = this as Element;
+        nodeElement.setAttribute('data-node-value', nodeData.value.toString());
       }
     });
 
@@ -438,12 +414,27 @@ export function renderBinaryTree(
         .attr('stroke-width', 2);
     });
 
-  // Handle tree-level animations
+  // Handle all animations using the new generic system
   if (visualState.animationHints && visualState.animationHints.length > 0) {
-    const treeHints = AnimationController.getTreeAnimations(visualState.animationHints);
-    if (treeHints.length > 0) {
-      AnimationController.processTreeHints(svgElement, treeHints);
-    }
+    // Create element provider function
+    const elementProvider = (elementId: string): Element | null => {
+      // Check if it's a link ID
+      if (elementId.includes('-')) {
+        const linkElement = mainGroup.select(`[data-link-id="${elementId}"]`).node();
+        if (linkElement) return linkElement as Element;
+      } else {
+        // Check if it's a node value
+        const nodeElement = mainGroup.select(`[data-node-value="${elementId}"]`).node();
+        if (nodeElement) return nodeElement as Element;
+      }
+      return null;
+    };
+
+    // Process all animations through the generic system
+    processBinaryTreeAnimations(
+      visualState.animationHints,
+      elementProvider
+    );
   }
 }
 

@@ -1,6 +1,6 @@
 import type { Operation } from '../../../lib/core/types';
 import { createOperation } from '../../../lib/core/types';
-import { DataStructureOperationController } from '../../../lib/core/DataStructureOperationController';
+import { OperationController } from '../../../lib/core/OperationController';
 import type { BinaryTree, BinaryTreeNode } from '../types';
 import { createBinaryTree } from '../types';
 import { generateBSTInsertStates, generateBSTSearchStates } from '../algorithms';
@@ -8,7 +8,7 @@ import { generateBSTInsertStates, generateBSTSearchStates } from '../algorithms'
 /**
  * BST Operation Controller
  * 
- * Concrete implementation of DataStructureOperationController for Binary Search Trees.
+ * Concrete implementation of OperationController for Binary Search Trees.
  * Provides BST-specific operations (insert, delete, search) that generate sequences
  * of immutable states for step-by-step visualization.
  * 
@@ -18,7 +18,7 @@ import { generateBSTInsertStates, generateBSTSearchStates } from '../algorithms'
  * - Educational operation descriptions
  * - BST property validation
  */
-export class BSTOperationController extends DataStructureOperationController<BinaryTree> {
+export class BSTOperationController extends OperationController<BinaryTree> {
   
   constructor(initialTree: BinaryTree | null = null) {
     // Initialize with empty tree if none provided

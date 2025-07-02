@@ -1,13 +1,13 @@
 import { useMemo, useCallback, useSyncExternalStore } from 'react';
 import type { DataStructureState, Operation } from '../types';
-import type { DataStructureOperationController } from '../DataStructureOperationController';
+import type { OperationController } from '../OperationController';
 
 /**
- * Hook return type for data structure controllers.
+ * Hook return type for history controllers.
  */
-export interface UseDataStructureControllerResult<
+export interface UseHistoryResult<
   TState extends DataStructureState,
-  TController extends DataStructureOperationController<TState>
+  TController extends OperationController<TState>
 > {
   /** The controller instance */
   controller: TController;
@@ -68,7 +68,7 @@ export interface UseDataStructureControllerResult<
  * Generic React hook for data structure controllers.
  * 
  * Provides reactive state management for any data structure that extends
- * DataStructureOperationController. Uses React's useSyncExternalStore
+ * OperationController. Uses React's useSyncExternalStore
  * for optimal performance and consistency.
  * 
  * @param ControllerClass - Constructor for the controller class
@@ -76,14 +76,14 @@ export interface UseDataStructureControllerResult<
  * @param dependencies - Additional dependencies that should trigger controller recreation
  * @returns Hook result with controller instance and reactive state
  */
-export function useDataStructureController<
+export function useHistory<
   TState extends DataStructureState,
-  TController extends DataStructureOperationController<TState>
+  TController extends OperationController<TState>
 >(
   ControllerClass: new (initialState: TState | null, ...args: any[]) => TController,
   initialState: TState | null = null,
   dependencies: React.DependencyList = []
-): UseDataStructureControllerResult<TState, TController> {
+): UseHistoryResult<TState, TController> {
   // Create controller instance (stable across re-renders unless dependencies change)
   const controller = useMemo(() => {
     return new ControllerClass(initialState);
@@ -125,11 +125,11 @@ export function useDataStructureController<
 
   return {
     controller,
-    currentState: state.currentState,
-    currentVisualizationState: state.currentVisualizationState,
-    isAnimating: state.isAnimating,
-    currentOperationIndex: state.currentOperationIndex,
-    currentAnimationIndex: state.currentAnimationIndex,
+    currentState: (state as any).currentState,
+    currentVisualizationState: (state as any).currentVisualizationState,
+    isAnimating: (state as any).isAnimating,
+    currentOperationIndex: (state as any).currentOperationIndex,
+    currentAnimationIndex: (state as any).currentAnimationIndex,
     
     // Navigation methods
     stepForward,
@@ -159,7 +159,7 @@ export function useDataStructureController<
  */
 export function useOperationExecution<
   TState extends DataStructureState,
-  TController extends DataStructureOperationController<TState>
+  TController extends OperationController<TState>
 >(controller: TController) {
   const executeWithAnimation = useCallback((operation: Operation) => {
     return controller.executeOperation(operation);

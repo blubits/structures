@@ -5,7 +5,7 @@ import type {
 } from './types';
 
 /**
- * Internal state of the OperationHistoryController.
+ * Internal state of the HistoryController.
  */
 interface ControllerState<TState extends DataStructureState> {
   /** Current final state (SSOT) - result of the last completed operation */
@@ -33,7 +33,7 @@ interface ControllerState<TState extends DataStructureState> {
  * 
  * Uses immutable state updates and React's useSyncExternalStore for reactivity.
  */
-export class OperationHistoryController<TState extends DataStructureState = DataStructureState> {
+export class HistoryController<TState extends DataStructureState = DataStructureState> {
   private operationHistory: OperationGroup<TState>[] = [];
   private redoStack: OperationGroup<TState>[] = [];
   

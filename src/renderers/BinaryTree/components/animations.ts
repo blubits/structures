@@ -1,33 +1,29 @@
 /**
- * Binary Tree Animation System
+ * Binary Tree Animation Configuration
  * 
- * Provides declarative animations for binary tree visualizations using D3.
- * All animations are triggered by hints embedded in tree states and follow
- * the "one step, one animation" principle.
- * 
- * This module registers binary tree specific animations with the core
- * AnimationController and provides D3-based implementations.
+ * Configures the AnimationController for binary tree visualizations.
+ * This replaces the old rigid system with a flexible approach that defines
+ * how binary tree animations work within the generic framework.
  */
 
+import { AnimationController, createSimpleHintProcessor, createSimpleElementAnimationExecutor } from '../../../lib/core/AnimationController';
+import type { 
+  VisualizationAnimationConfig, 
+  AnimationRegistration,
+  GenericAnimationContext
+} from '../../../lib/core/AnimationController';
+import type { AnimationHint } from '../../../lib/core/types';
 import * as d3 from 'd3';
-import { AnimationController } from '../../../lib/core/AnimationController';
-import type { 
-  LinkAnimationContext,
-  AnimationMetadataSchema
-} from '../../../lib/core/types';
-import type { 
-  BinaryTreeLinkAnimationContext
-} from '../types';
 
 // =============================================================================
-// LINK ANIMATIONS
+// BINARY TREE ANIMATION FUNCTIONS
 // =============================================================================
 
 /**
  * Traverse down animation - shows a pulsing dot traveling from source to target
  * The link itself remains unchanged, only the traveling dot is animated
  */
-const traverseDownAnimation = (context: BinaryTreeLinkAnimationContext): void => {
+const traverseDownAnimation = (context: GenericAnimationContext): void => {
   const { element, hint } = context;
   const duration = hint.duration || 600;
   
@@ -123,91 +119,121 @@ const traverseDownAnimation = (context: BinaryTreeLinkAnimationContext): void =>
 };
 
 // =============================================================================
-// WRAPPER FUNCTIONS FOR REGISTRATION
+// BINARY TREE ANIMATION CONFIGURATION
 // =============================================================================
 
 /**
- * Creates a wrapper function that converts generic LinkAnimationContext
- * to BinaryTreeLinkAnimationContext for compatibility with the core system.
+ * Animation registrations for binary tree
  */
-function createLinkAnimationWrapper(
-  animation: (context: BinaryTreeLinkAnimationContext) => void
-) {
-  return (context: LinkAnimationContext) => {
-    if (import.meta.env.DEV) {
-      console.log('🎬 LinkAnimation wrapper called:', {
-        animationType: context.hint.type,
-        metadata: context.hint.metadata,
-        hasElement: !!context.element,
-        sourceData: context.sourceData,
-        targetData: context.targetData
-      });
+const binaryTreeAnimations = new Map<string, AnimationRegistration>([
+  ['traverse-down', {
+    animationFunction: traverseDownAnimation,
+    metadataSchema: {
+      validateMetadata: (metadata: Record<string, any>) => {
+        const isValid = typeof metadata.sourceValue === 'number' && 
+               typeof metadata.targetValue === 'number';
+        if (import.meta.env.DEV) {
+          console.log('🎬 Validating traverse-down metadata:', { metadata, isValid });
+        }
+        return isValid;
+      },
+      extractTargets: (metadata: Record<string, any>) => {
+        const source = metadata.sourceValue;
+        const target = metadata.targetValue;
+        if (source !== undefined && target !== undefined) {
+          const linkId = `${source}-${target}`;
+          if (import.meta.env.DEV) {
+            console.log('🎬 extractTargets: Link target created', { source, target, linkId });
+          }
+          return [linkId];
+        }
+        return [];
+      }
     }
+  }]
+]);
 
-    // Extract additional binary tree context from sourceData/targetData
-    const sourceNode = context.sourceData as any; // Will be BinaryTreeNode
-    const targetNode = context.targetData as any; // Will be BinaryTreeNode
-    const treeState = { root: null } as any; // Mock tree state - not used in current animations
-    
-    const binaryTreeContext: BinaryTreeLinkAnimationContext = {
-      ...context,
-      sourceNode,
-      targetNode,
-      treeState,
-    };
-    
-    try {
-      animation(binaryTreeContext);
-    } catch (error) {
-      console.error('Animation execution failed:', error);
-      // Call completion callback to prevent hanging
-      context.onComplete?.();
-    }
-  };
+/**
+ * Maps animation types to their corresponding element types
+ */
+const animationTypeToElementType = new Map<string, string>([
+  ['traverse-down', 'link']
+]);
+
+/**
+ * Extract element IDs for binary tree animations
+ */
+function extractBinaryTreeElementId(animationType: string, hint: AnimationHint): string[] {
+  const registration = binaryTreeAnimations.get(animationType);
+  if (!registration || !hint.metadata) {
+    return [];
+  }
+
+  return registration.metadataSchema.extractTargets?.(hint.metadata) || [];
 }
+
+/**
+ * Binary tree visualization animation configuration
+ */
+const binaryTreeAnimationConfig: VisualizationAnimationConfig = {
+  animations: binaryTreeAnimations,
+  
+  processHints: createSimpleHintProcessor(
+    animationTypeToElementType,
+    extractBinaryTreeElementId
+  ),
+  
+  executeElementAnimations: createSimpleElementAnimationExecutor(
+    AnimationController,
+    'binary-tree'
+  )
+};
 
 // =============================================================================
 // REGISTRATION
 // =============================================================================
 
 /**
- * Registers all binary tree animations with the core animation controller.
+ * Registers binary tree animations with the generic animation controller.
  * Call this function during application initialization.
  */
 export function registerBinaryTreeAnimations(): void {
   if (import.meta.env.DEV) {
-    console.log('🎬 Registering binary tree animations...');
+    console.log('🎬 Registering binary tree animations with AnimationController...');
   }
   
-  // Define metadata schema for traverse-down animation
-  const traverseDownSchema: AnimationMetadataSchema = {
-    targetType: 'link',
-    linkSourceField: 'sourceValue',
-    linkTargetField: 'targetValue',
-    validateMetadata: (metadata: Record<string, any>) => {
-      const isValid = typeof metadata.sourceValue === 'number' && 
-             typeof metadata.targetValue === 'number';
-      if (import.meta.env.DEV) {
-        console.log('🎬 Validating traverse-down metadata:', { metadata, isValid });
-      }
-      return isValid;
-    }
-  };
-
-  // Link animations - only traverse-down as per requirements
-  AnimationController.registerLink(
-    'traverse-down', 
-    createLinkAnimationWrapper(traverseDownAnimation),
-    traverseDownSchema
-  );
+  AnimationController.registerVisualization('binary-tree', binaryTreeAnimationConfig);
   
   if (import.meta.env.DEV) {
-    console.log('🎬 Registered animations:', {
-      linkAnimations: AnimationController.getRegisteredLinkAnimations(),
-      nodeAnimations: AnimationController.getRegisteredNodeAnimations(),
-      treeAnimations: AnimationController.getRegisteredTreeAnimations()
+    console.log('🎬 Registered binary tree visualization:', {
+      animationTypes: Array.from(binaryTreeAnimations.keys()),
+      registeredVisualizations: AnimationController.getRegisteredVisualizations()
     });
   }
+}
+
+/**
+ * Helper function to process animation hints for binary tree visualizations.
+ * This is the main entry point for executing binary tree animations.
+ * 
+ * @param hints - Animation hints to process
+ * @param elementProvider - Function that returns DOM element for a given element ID
+ * @param contextDataProvider - Optional function that returns context data for a given element ID
+ * @param onComplete - Callback when all animations complete
+ */
+export function processBinaryTreeAnimations(
+  hints: readonly AnimationHint[],
+  elementProvider: (elementId: string) => Element | null,
+  contextDataProvider?: (elementId: string) => Record<string, any>,
+  onComplete?: () => void
+): void {
+  AnimationController.processAnimationHints(
+    'binary-tree',
+    hints,
+    elementProvider,
+    contextDataProvider,
+    onComplete
+  );
 }
 
 /**

@@ -10,11 +10,17 @@
 export * from './types';
 
 // Controllers
-export { OperationHistoryController } from './OperationHistoryController';
-export { DataStructureOperationController } from './DataStructureOperationController';
+export { HistoryController } from './History';
+export { OperationController } from './OperationController';
 
 // Animation system
 export { AnimationController } from './AnimationController';
+export type { 
+  GenericAnimationContext,
+  GenericAnimationFunction,
+  VisualizationAnimationConfig,
+  AnimationRegistration as GenericAnimationRegistration
+} from './AnimationController';
 
 // React hooks
-export * from './hooks/useDataStructureController';
+export * from './hooks/useHistory';

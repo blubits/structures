@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
+import { useHistory } from '../../../lib/core/hooks/useHistory';
 import type { ReactNode } from 'react';
 import { BSTOperationController } from './BSTOperationController';
 import { createBinaryTree } from '../types';
@@ -50,7 +51,7 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
     return newController;
   }, [initialTree]);
 
-  // Track current state manually for now (TODO: integrate with useDataStructureController in future)
+  // Track current state manually for now (TODO: integrate with useHistory in future)
   const [currentState, setCurrentState] = useState<BinaryTree>(() => 
     controller.getCurrentVisualizationState() || createBinaryTree(null, "Empty BST")
   );

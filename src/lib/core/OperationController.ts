@@ -4,7 +4,7 @@ import type {
   OperationResult,
   StateValidator,
 } from './types';
-import { OperationHistoryController } from './OperationHistoryController';
+import { HistoryController } from './History';
 
 /**
  * Abstract base class for data structure operation controllers.
@@ -14,12 +14,12 @@ import { OperationHistoryController } from './OperationHistoryController';
  * 
  * Enforces immutability by requiring all operations to return new state instances.
  */
-export abstract class DataStructureOperationController<TState extends DataStructureState = DataStructureState> {
-  protected historyController: OperationHistoryController<TState>;
+export abstract class OperationController<TState extends DataStructureState = DataStructureState> {
+  protected historyController: HistoryController<TState>;
   protected validator?: StateValidator<TState>;
 
   constructor(initialState: TState | null = null, validator?: StateValidator<TState>) {
-    this.historyController = new OperationHistoryController<TState>(initialState);
+    this.historyController = new HistoryController<TState>(initialState);
     this.validator = validator;
   }
 
@@ -289,7 +289,7 @@ export abstract class DataStructureOperationController<TState extends DataStruct
    * Gets access to the underlying history controller.
    * Use this for advanced operations or React hooks integration.
    */
-  getHistoryController(): OperationHistoryController<TState> {
+  getHistoryController(): HistoryController<TState> {
     return this.historyController;
   }
 
