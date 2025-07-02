@@ -174,6 +174,24 @@ export abstract class DataStructureOperationController<TState extends DataStruct
     }
   }
 
+  /**
+   * Executes an operation with full animation state generation and immediately
+   * starts stepping through the operation from the first step.
+   * 
+   * @param operation - The operation to execute
+   * @returns Result containing all animation states or error information
+   */
+  executeOperationWithStepping(operation: Operation): OperationResult<TState> {
+    const result = this.executeOperation(operation);
+    
+    if (result.success) {
+      // Start stepping through the operation from the beginning
+      this.historyController.startSteppingThroughCurrentOperation();
+    }
+    
+    return result;
+  }
+
   // History management methods (delegate to history controller)
 
   /**

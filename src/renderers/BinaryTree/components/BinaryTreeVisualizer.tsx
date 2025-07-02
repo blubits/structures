@@ -1,7 +1,11 @@
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useMemo } from "react";
 import { useTheme } from "../../../components/ThemeProvider";
-import type { BinaryTree, BinaryTreeNode } from "../types";
+import type { BinaryTree } from "../types";
 import { renderBinaryTree } from "./renderer.js";
+import { registerBinaryTreeAnimations } from "./animations.js";
+
+// Initialize animations once when the module loads
+let animationsInitialized = false;
 
 interface BinaryTreeVisualizerProps {
   state: BinaryTree;
@@ -15,70 +19,65 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isInitialized = useRef(false);
+  const renderCount = useRef(0);
+  const prevVisualStateRef = useRef<{
+    tree: any;
+    animationSpeed: 'slow' | 'normal' | 'fast';
+    theme: 'dark' | 'light';
+    animationHints: any;
+  } | null>(null);
   const { prefersDarkMode } = useTheme();
 
-  // Create visual state for the renderer
-  const createVisualState = useCallback(() => {
+  // Initialize animations on first mount
+  useEffect(() => {
+    if (!animationsInitialized) {
+      if (import.meta.env.DEV) {
+        console.log('🎬 BinaryTreeVisualizer: Initializing animations...');
+      }
+      registerBinaryTreeAnimations();
+      animationsInitialized = true;
+    }
+  }, []);
+
+  // Track render count for debugging
+  renderCount.current++;
+
+  // Create visual state for the renderer with deep comparison for state object
+  const visualState = useMemo(() => {
     if (import.meta.env.DEV) {
       console.log('🎨 BinaryTreeVisualizer: Creating visual state', {
+        renderCount: renderCount.current,
         hasState: !!state,
         hasRoot: !!state?.root,
         stateName: state?.name,
         rootValue: state?.root?.value,
         nodeCount: state?.nodeCount,
-        height: state?.height
-      });
-    }
-
-    // Extract information for visual state from the new state structure
-    const visitedNodes = new Set<number>();
-    const highlightPath: number[] = [];
-    let currentNode: number | null = null;
-    const traversalLinks: Array<{from: number, to: number}> = [];
-
-    // Walk tree to find nodes with special states
-    const walkTree = (node: BinaryTreeNode | null, path: number[] = []) => {
-      if (!node) return;
-
-      if (node.state === 'active') {
-        currentNode = node.value;
-        highlightPath.push(...path, node.value);
-      } else if (node.state === 'visited') {
-        visitedNodes.add(node.value);
-      }
-
-      walkTree(node.left, [...path, node.value]);
-      walkTree(node.right, [...path, node.value]);
-    };
-
-    walkTree(state.root);
-
-    if (import.meta.env.DEV) {
-      console.log('🎨 BinaryTreeVisualizer: Visual state created', {
-        hasTree: !!state.root,
-        visitedNodesCount: visitedNodes.size,
-        highlightPathLength: highlightPath.length,
-        currentNode,
-        animationSpeed,
-        theme: prefersDarkMode ? 'dark' : 'light'
+        height: state?.height,
+        animationHintsCount: state?.animationHints?.length || 0
       });
     }
 
     return {
       tree: state.root,
-      visitedNodes,
-      highlightPath,
-      currentNode,
-      traversalLinks,
       animationSpeed,
-      theme: (prefersDarkMode ? 'dark' : 'light') as 'dark' | 'light'
+      theme: (prefersDarkMode ? 'dark' : 'light') as 'dark' | 'light',
+      animationHints: state.animationHints // Only source of animation data
     };
-  }, [state.root, animationSpeed, prefersDarkMode]);
+  }, [
+    state.root, 
+    state.name, 
+    state.nodeCount, 
+    state.height, 
+    state.animationHints, 
+    animationSpeed, 
+    prefersDarkMode
+  ]);
 
   // Initialize and update the renderer
   useEffect(() => {
     if (import.meta.env.DEV) {
       console.log('🖼️ BinaryTreeVisualizer: useEffect triggered', {
+        renderCount: renderCount.current,
         hasSvgRef: !!svgRef.current,
         hasContainerRef: !!containerRef.current,
         isInitialized: isInitialized.current
@@ -86,8 +85,20 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
     }
 
     if (!svgRef.current || !containerRef.current) return;
+    
+    // Skip if the visual state hasn't actually changed (deep comparison for content)
+    if (prevVisualStateRef.current && 
+        prevVisualStateRef.current.tree === visualState.tree &&
+        prevVisualStateRef.current.theme === visualState.theme &&
+        prevVisualStateRef.current.animationSpeed === visualState.animationSpeed &&
+        JSON.stringify(prevVisualStateRef.current.animationHints) === JSON.stringify(visualState.animationHints)) {
+      if (import.meta.env.DEV) {
+        console.log('🖼️ BinaryTreeVisualizer: Skipping render - no changes detected');
+      }
+      return;
+    }
 
-    const visualState = createVisualState();
+    prevVisualStateRef.current = visualState;
     
     try {
       if (!isInitialized.current) {
@@ -105,7 +116,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
     } catch (error) {
       console.error('Error rendering binary tree:', error);
     }
-  }, [createVisualState]);
+  }, [visualState]);
 
   // Handle container resize
   useEffect(() => {
@@ -113,7 +124,6 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
 
     const resizeObserver = new ResizeObserver(() => {
       if (isInitialized.current && svgRef.current && containerRef.current) {
-        const visualState = createVisualState();
         renderBinaryTree(svgRef.current, containerRef.current, visualState);
       }
     });
@@ -123,7 +133,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
     return () => {
       resizeObserver.disconnect();
     };
-  }, [createVisualState]);
+  }, [visualState]);
 
   return (
     <div 

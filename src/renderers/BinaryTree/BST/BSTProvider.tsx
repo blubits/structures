@@ -1,8 +1,12 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { BSTOperationController } from './BSTOperationController';
-import { createBinaryTree } from './types';
-import type { BinaryTree } from './types';
+import { createBinaryTree } from '../types';
+import type { BinaryTree } from '../types';
+import { registerBinaryTreeAnimations } from '../components/animations';
+
+// Register animations on module load
+registerBinaryTreeAnimations();
 
 /**
  * Context for BST operations and state management
@@ -34,7 +38,7 @@ interface BSTProviderProps {
  */
 export function BSTProvider({ children, initialTree }: BSTProviderProps) {
   // Initialize the BST controller
-  const controller = React.useMemo(() => {
+  const controller = useMemo(() => {
     const newController = new BSTOperationController(initialTree || createBinaryTree(null, "Empty BST"));
     
     if (import.meta.env.DEV) {

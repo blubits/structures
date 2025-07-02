@@ -240,3 +240,35 @@ export function createErrorResult<TState extends DataStructureState>(
     metadata,
   };
 }
+
+/**
+ * Describes how to extract target information from animation hint metadata.
+ */
+export interface AnimationMetadataSchema {
+  /** How to determine the target type (node, link, tree) */
+  targetType: 'node' | 'link' | 'tree';
+  
+  /** For node animations: field name(s) that contain the target node value */
+  nodeTargetFields?: string[];
+  
+  /** For link animations: field names for source and target values */
+  linkSourceField?: string;
+  linkTargetField?: string;
+  
+  /** Custom validation function for the metadata */
+  validateMetadata?: (metadata: Record<string, any>) => boolean;
+  
+  /** Extract targets from metadata - returns array of target identifiers */
+  extractTargets?: (metadata: Record<string, any>) => string[];
+}
+
+/**
+ * Animation registration information including metadata schema.
+ */
+export interface AnimationRegistration {
+  /** The animation function */
+  animationFunction: NodeAnimationFunction | LinkAnimationFunction | TreeAnimationFunction;
+  
+  /** Schema describing expected metadata format */
+  metadataSchema: AnimationMetadataSchema;
+}

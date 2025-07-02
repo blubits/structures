@@ -45,7 +45,7 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
     states.push(createBinaryTree(
       newRoot,
       `Inserting ${value} as root`,
-      [{ type: 'tree-insert', metadata: { value } }]
+      [{ type: 'appear', metadata: { targetType: 'node', targetValue: value } }]
     ));
     
     // Final state with node in default state
@@ -69,7 +69,7 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
   ): { newTree: BinaryTreeNode; states: BinaryTree[] } => {
     const stepStates: BinaryTree[] = [];
     
-    // Step 1: Compare with current node
+    // Step 1: Compare with current node (set to active)
     const compareNode = updateBinaryTreeNode(current, {
       state: 'active'
     });
@@ -78,21 +78,31 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
     stepStates.push(createBinaryTree(
       compareTree,
       `Comparing ${value} with ${current.value}`,
-      [{ type: 'compare', metadata: { compareValue: current.value, insertValue: value } }]
+      undefined // No animation hint needed - node state handles the color
     ));
     
     // Step 2: Make decision and traverse
     if (value < current.value) {
       // Go left
       const leftTraverseNode = updateBinaryTreeNode(compareNode, {
-        state: 'active'
+        state: 'visited' // Mark as visited when we decide to traverse
       });
       
       const leftTraverseTree = updateTreeAtPath(tree.root!, path, leftTraverseNode);
+      
+      // Only add traverse-down animation if there's actually a child to traverse to
+      const animationHints = current.left ? [{ 
+        type: 'traverse-down', 
+        metadata: { 
+          sourceValue: current.value, 
+          targetValue: current.left.value
+        } 
+      }] : undefined;
+      
       stepStates.push(createBinaryTree(
         leftTraverseTree,
         `${value} < ${current.value}, going left`,
-        [{ type: 'traverse-left', metadata: { direction: 'left' } }]
+        animationHints
       ));
       
       if (current.left === null) {
@@ -106,55 +116,93 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
         
         const insertedNode = updateBinaryTreeNode(leftTraverseNode, {
           left: newNode,
-          state: 'visited'
+          state: 'visited' // Keep parent as visited
         });
         
         const insertedTree = updateTreeAtPath(tree.root!, path, insertedNode);
         stepStates.push(createBinaryTree(
           insertedTree,
           `Inserting ${value} as left child of ${current.value}`,
-          [{ type: 'insert-left', metadata: { parentValue: current.value, value } }]
+          [{ type: 'appear', metadata: { targetType: 'node', targetValue: value } }]
         ));
         
-        // Final state with all nodes in default state
-        const finalNode = updateBinaryTreeNode(insertedNode, {
-          state: 'default',
-          left: updateBinaryTreeNode(newNode, { state: 'default' })
+        // Mark new node as visited for completion
+        const completedNode = updateBinaryTreeNode(insertedNode, {
+          left: updateBinaryTreeNode(newNode, { state: 'visited' })
         });
         
-        const finalTree = updateTreeAtPath(tree.root!, path, finalNode);
+        const completedTree = updateTreeAtPath(tree.root!, path, completedNode);
         stepStates.push(createBinaryTree(
-          finalTree,
+          completedTree,
           `Inserted ${value}`,
           undefined
         ));
         
-        return { newTree: finalTree, states: stepStates };
+        return { newTree: completedTree, states: stepStates };
       } else {
-        // Continue traversing left
-        const resetNode = updateBinaryTreeNode(leftTraverseNode, {
+        // Continue traversing left - mark current node as visited
+        const visitedNode = updateBinaryTreeNode(leftTraverseNode, {
           state: 'visited'
         });
         
-        const resetTree = updateTreeAtPath(tree.root!, path, resetNode);
         const result = insertNode(current.left, [...path, 'left']);
+        
+        // Update the previous "going left" step to show the visited state
+        const updatedAnimationHints = current.left ? [{ 
+          type: 'traverse-down', 
+          metadata: { 
+            sourceValue: current.value, 
+            targetValue: current.left.value
+          } 
+        }] : undefined;
+        
+        const updatedTraverseStep = createBinaryTree(
+          updateTreeAtPath(tree.root!, path, visitedNode),
+          `${value} < ${current.value}, going left`,
+          updatedAnimationHints
+        );
+        
+        // Merge states and ensure ALL nodes in the current path remain visited
+        const baseStates = [...stepStates.slice(0, -1), updatedTraverseStep];
+        
+        // For each state from the recursive call, ensure the current path remains visited
+        const enhancedChildStates = result.states.map(childState => {
+          if (childState.root) {
+            // Mark the entire path from root to current node as visited
+            const rootWithVisitedPath = markPathAsVisited(childState.root, path);
+            return createBinaryTree(rootWithVisitedPath, childState.name, childState.animationHints);
+          }
+          return childState;
+        });
+        
+        const mergedStates = [...baseStates, ...enhancedChildStates];
         
         return { 
           newTree: result.newTree, 
-          states: [...stepStates.slice(0, -1), createBinaryTree(resetTree, `Continuing left...`), ...result.states] 
+          states: mergedStates
         };
       }
     } else if (value > current.value) {
       // Go right (similar logic to left)
       const rightTraverseNode = updateBinaryTreeNode(compareNode, {
-        state: 'active'
+        state: 'visited' // Mark as visited when we decide to traverse
       });
       
       const rightTraverseTree = updateTreeAtPath(tree.root!, path, rightTraverseNode);
+      
+      // Only add traverse-down animation if there's actually a child to traverse to
+      const animationHints = current.right ? [{ 
+        type: 'traverse-down', 
+        metadata: { 
+          sourceValue: current.value, 
+          targetValue: current.right.value
+        } 
+      }] : undefined;
+      
       stepStates.push(createBinaryTree(
         rightTraverseTree,
         `${value} > ${current.value}, going right`,
-        [{ type: 'traverse-right', metadata: { direction: 'right' } }]
+        animationHints
       ));
       
       if (current.right === null) {
@@ -168,42 +216,70 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
         
         const insertedNode = updateBinaryTreeNode(rightTraverseNode, {
           right: newNode,
-          state: 'visited'
+          state: 'visited' // Keep parent as visited
         });
         
         const insertedTree = updateTreeAtPath(tree.root!, path, insertedNode);
         stepStates.push(createBinaryTree(
           insertedTree,
           `Inserting ${value} as right child of ${current.value}`,
-          [{ type: 'insert-right', metadata: { parentValue: current.value, value } }]
+          [{ type: 'appear', metadata: { targetType: 'node', targetValue: value } }]
         ));
         
-        // Final state
-        const finalNode = updateBinaryTreeNode(insertedNode, {
-          state: 'default',
-          right: updateBinaryTreeNode(newNode, { state: 'default' })
+        // Mark new node as visited for completion
+        const completedNode = updateBinaryTreeNode(insertedNode, {
+          right: updateBinaryTreeNode(newNode, { state: 'visited' })
         });
         
-        const finalTree = updateTreeAtPath(tree.root!, path, finalNode);
+        const completedTree = updateTreeAtPath(tree.root!, path, completedNode);
         stepStates.push(createBinaryTree(
-          finalTree,
+          completedTree,
           `Inserted ${value}`,
           undefined
         ));
         
-        return { newTree: finalTree, states: stepStates };
+        return { newTree: completedTree, states: stepStates };
       } else {
-        // Continue traversing right
-        const resetNode = updateBinaryTreeNode(rightTraverseNode, {
+        // Continue traversing right - mark current node as visited
+        const visitedNode = updateBinaryTreeNode(rightTraverseNode, {
           state: 'visited'
         });
         
-        const resetTree = updateTreeAtPath(tree.root!, path, resetNode);
         const result = insertNode(current.right, [...path, 'right']);
+        
+        // Update the previous "going right" step to show the visited state
+        const updatedAnimationHints = current.right ? [{ 
+          type: 'traverse-down', 
+          metadata: { 
+            sourceValue: current.value, 
+            targetValue: current.right.value
+          } 
+        }] : undefined;
+        
+        const updatedTraverseStep = createBinaryTree(
+          updateTreeAtPath(tree.root!, path, visitedNode),
+          `${value} > ${current.value}, going right`,
+          updatedAnimationHints
+        );
+        
+        // Merge states and ensure ALL nodes in the current path remain visited
+        const baseStates = [...stepStates.slice(0, -1), updatedTraverseStep];
+        
+        // For each state from the recursive call, ensure the current path remains visited
+        const enhancedChildStates = result.states.map(childState => {
+          if (childState.root) {
+            // Mark the entire path from root to current node as visited
+            const rootWithVisitedPath = markPathAsVisited(childState.root, path);
+            return createBinaryTree(rootWithVisitedPath, childState.name, childState.animationHints);
+          }
+          return childState;
+        });
+        
+        const mergedStates = [...baseStates, ...enhancedChildStates];
         
         return { 
           newTree: result.newTree, 
-          states: [...stepStates.slice(0, -1), createBinaryTree(resetTree, `Continuing right...`), ...result.states] 
+          states: mergedStates
         };
       }
     } else {
@@ -216,7 +292,7 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
       stepStates.push(createBinaryTree(
         existsTree,
         `${value} already exists, not inserting`,
-        [{ type: 'already-exists', metadata: { value } }]
+        [{ type: 'shake', metadata: { targetType: 'node', targetValue: value } }]
       ));
       
       // Reset to original state
@@ -236,7 +312,20 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
   };
   
   const result = insertNode(tree.root, []);
-  return result.states;
+  
+  // Add final cleanup state - reset all nodes to default
+  const finalCleanupStates = [...result.states];
+  const lastState = finalCleanupStates[finalCleanupStates.length - 1];
+  if (lastState && lastState.root) {
+    const cleanRoot = resetAllNodesToDefault(lastState.root);
+    finalCleanupStates.push(createBinaryTree(
+      cleanRoot,
+      `Insert complete - tree ready`,
+      undefined
+    ));
+  }
+  
+  return finalCleanupStates;
 }
 
 /**
@@ -246,38 +335,38 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
  * of searching for a value in a Binary Search Tree.
  */
 export function generateBSTSearchStates(tree: BinaryTree, value: number): BinaryTree[] {
-  const states: BinaryTree[] = [];
-  
   if (!tree.root) {
-    states.push(createBinaryTree(
+    const emptyState = createBinaryTree(
       null,
       `Tree is empty, ${value} not found`,
-      [{ type: 'search-empty', metadata: { value } }]
-    ));
-    return states;
+      [{ type: 'shake', metadata: { targetType: 'tree' } }]
+    );
+    return [emptyState];
   }
   
   const searchNode = (current: BinaryTreeNode | null, path: string[]): BinaryTree[] => {
     if (!current) {
       // Value not found
-      states.push(createBinaryTree(
+      const notFoundState = createBinaryTree(
         tree.root,
         `${value} not found`,
-        [{ type: 'not-found', metadata: { value } }]
-      ));
-      return states;
+        [{ type: 'shake', metadata: { targetType: 'tree' } }]
+      );
+      return [notFoundState];
     }
     
-    // Step 1: Compare with current node
+    const currentStates: BinaryTree[] = [];
+    
+    // Step 1: Compare with current node (set to active)
     const compareNode = updateBinaryTreeNode(current, {
       state: 'active'
     });
     
     const compareTree = updateTreeAtPath(tree.root!, path, compareNode);
-    states.push(createBinaryTree(
+    currentStates.push(createBinaryTree(
       compareTree,
       `Comparing ${value} with ${current.value}`,
-      [{ type: 'compare', metadata: { compareValue: current.value, searchValue: value } }]
+      undefined // No animation hint needed - node state handles the color
     ));
     
     if (value === current.value) {
@@ -287,57 +376,129 @@ export function generateBSTSearchStates(tree: BinaryTree, value: number): Binary
       });
       
       const foundTree = updateTreeAtPath(tree.root!, path, foundNode);
-      states.push(createBinaryTree(
+      currentStates.push(createBinaryTree(
         foundTree,
         `Found ${value}!`,
-        [{ type: 'found', metadata: { value } }]
+        [{ type: 'found', metadata: { targetType: 'node', targetValue: value } }]
       ));
       
-      // Reset state
-      const resetNode = updateBinaryTreeNode(foundNode, {
-        state: 'visited'
-      });
-      
-      const resetTree = updateTreeAtPath(tree.root!, path, resetNode);
-      states.push(createBinaryTree(
-        resetTree,
-        `Search completed`,
-        undefined
-      ));
-      
-      return states;
+      return currentStates;
     } else if (value < current.value) {
-      // Go left
-      const leftNode = updateBinaryTreeNode(compareNode, {
+      // Go left - mark current as visited
+      const visitedNode = updateBinaryTreeNode(compareNode, {
         state: 'visited'
       });
       
-      const leftTree = updateTreeAtPath(tree.root!, path, leftNode);
-      states.push(createBinaryTree(
-        leftTree,
+      const visitedTree = updateTreeAtPath(tree.root!, path, visitedNode);
+      
+      // Only add traverse-down animation if there's actually a child to traverse to
+      const animationHints = current.left ? [{ 
+        type: 'traverse-down', 
+        metadata: { 
+          sourceValue: current.value, 
+          targetValue: current.left.value
+        } 
+      }] : undefined;
+      
+      currentStates.push(createBinaryTree(
+        visitedTree,
         `${value} < ${current.value}, going left`,
-        [{ type: 'traverse-left', metadata: { direction: 'left' } }]
+        animationHints
       ));
       
-      return searchNode(current.left, [...path, 'left']);
+      // Recursively search left subtree
+      const childResults = searchNode(current.left, [...path, 'left']);
+      
+      // Return combined states
+      return [...currentStates, ...childResults];
     } else {
-      // Go right
-      const rightNode = updateBinaryTreeNode(compareNode, {
+      // Go right - mark current as visited
+      const visitedNode = updateBinaryTreeNode(compareNode, {
         state: 'visited'
       });
       
-      const rightTree = updateTreeAtPath(tree.root!, path, rightNode);
-      states.push(createBinaryTree(
-        rightTree,
+      const visitedTree = updateTreeAtPath(tree.root!, path, visitedNode);
+      
+      // Only add traverse-down animation if there's actually a child to traverse to
+      const animationHints = current.right ? [{ 
+        type: 'traverse-down', 
+        metadata: { 
+          sourceValue: current.value, 
+          targetValue: current.right.value
+        } 
+      }] : undefined;
+      
+      currentStates.push(createBinaryTree(
+        visitedTree,
         `${value} > ${current.value}, going right`,
-        [{ type: 'traverse-right', metadata: { direction: 'right' } }]
+        animationHints
       ));
       
-      return searchNode(current.right, [...path, 'right']);
+      // Recursively search right subtree
+      const childResults = searchNode(current.right, [...path, 'right']);
+      
+      // Return combined states
+      return [...currentStates, ...childResults];
     }
   };
   
-  return searchNode(tree.root, []);
+  const searchResult = searchNode(tree.root, []);
+  
+  // Add final cleanup state - reset all nodes to default
+  if (searchResult.length > 0) {
+    const lastState = searchResult[searchResult.length - 1];
+    if (lastState && lastState.root) {
+      const cleanRoot = resetAllNodesToDefault(lastState.root);
+      searchResult.push(createBinaryTree(
+        cleanRoot,
+        `Search complete - tree ready`,
+        undefined
+      ));
+    }
+  }
+  
+  return searchResult;
+}
+
+/**
+ * Helper function to mark all nodes in a path as visited
+ */
+function markPathAsVisited(root: BinaryTreeNode, pathToMark: string[]): BinaryTreeNode {
+  if (pathToMark.length === 0) {
+    return updateBinaryTreeNode(root, { state: 'visited' });
+  }
+  
+  const [direction, ...restPath] = pathToMark;
+  
+  if (direction === 'left' && root.left) {
+    return updateBinaryTreeNode(root, {
+      state: 'visited',
+      left: markPathAsVisited(root.left, restPath)
+    });
+  } else if (direction === 'right' && root.right) {
+    return updateBinaryTreeNode(root, {
+      state: 'visited',
+      right: markPathAsVisited(root.right, restPath)
+    });
+  }
+  
+  return updateBinaryTreeNode(root, { state: 'visited' });
+}
+
+/**
+ * Helper function to get a node at a specific path in the tree
+ */
+/**
+ * Helper function to reset all nodes in a tree to default state
+ */
+function resetAllNodesToDefault(node: BinaryTreeNode | null): BinaryTreeNode | null {
+  if (!node) return null;
+  
+  return updateBinaryTreeNode(node, {
+    state: 'default',
+    left: resetAllNodesToDefault(node.left),
+    right: resetAllNodesToDefault(node.right)
+  });
 }
 
 /**

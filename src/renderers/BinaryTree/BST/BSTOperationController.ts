@@ -1,9 +1,9 @@
-import type { Operation } from '../../lib/core/types';
-import { createOperation } from '../../lib/core/types';
-import { DataStructureOperationController } from '../../lib/core/DataStructureOperationController';
-import type { BinaryTree, BinaryTreeNode } from './types';
-import { createBinaryTree } from './types';
-import { generateBSTInsertStates, generateBSTSearchStates } from './algorithms';
+import type { Operation } from '../../../lib/core/types';
+import { createOperation } from '../../../lib/core/types';
+import { DataStructureOperationController } from '../../../lib/core/DataStructureOperationController';
+import type { BinaryTree, BinaryTreeNode } from '../types';
+import { createBinaryTree } from '../types';
+import { generateBSTInsertStates, generateBSTSearchStates } from '../algorithms';
 
 /**
  * BST Operation Controller
@@ -244,6 +244,36 @@ export class BSTOperationController extends DataStructureOperationController<Bin
     return this.executeOperation(operation);
   }
 
+  /**
+   * Finds the minimum value in the BST and starts stepping through the operation.
+   * 
+   * @returns Result containing all animation states or error information
+   */
+  findMinWithStepping() {
+    const operation = createOperation(
+      'findMin',
+      {},
+      'Find minimum value'
+    );
+    
+    return this.executeOperationWithStepping(operation);
+  }
+
+  /**
+   * Finds the maximum value in the BST and starts stepping through the operation.
+   * 
+   * @returns Result containing all animation states or error information
+   */
+  findMaxWithStepping() {
+    const operation = createOperation(
+      'findMax',
+      {},
+      'Find maximum value'
+    );
+    
+    return this.executeOperationWithStepping(operation);
+  }
+
   // Public history access methods
 
   /**
@@ -304,6 +334,111 @@ export class BSTOperationController extends DataStructureOperationController<Bin
       success: true,
       states: [emptyTree] as const,
     };
+  }
+
+  /**
+   * Inserts a value into the BST and starts stepping through the operation.
+   * 
+   * @param value - The value to insert
+   * @returns Result containing all animation states or error information
+   */
+  insertWithStepping(value: number) {
+    const operation = createOperation(
+      'insert',
+      { value },
+      `Insert ${value}`
+    );
+    
+    return this.executeOperationWithStepping(operation);
+  }
+
+  /**
+   * Searches for a value in the BST and starts stepping through the operation.
+   * 
+   * @param value - The value to search for
+   * @returns Result containing all animation states or error information
+   */
+  searchWithStepping(value: number) {
+    const operation = createOperation(
+      'search',
+      { value },
+      `Search for ${value}`
+    );
+    
+    return this.executeOperationWithStepping(operation);
+  }
+
+  // Step-by-step navigation methods
+
+  /**
+   * Steps forward to the next animation state within the current operation.
+   */
+  stepForward(): BinaryTree | null {
+    return this.historyController.stepForward();
+  }
+
+  /**
+   * Steps backward to the previous animation state within the current operation.
+   */
+  stepBackward(): BinaryTree | null {
+    return this.historyController.stepBackward();
+  }
+
+  /**
+   * Checks if we can step forward in the current operation.
+   */
+  canStepForward(): boolean {
+    return this.historyController.canStepForward();
+  }
+
+  /**
+   * Checks if we can step backward in the current operation.
+   */
+  canStepBackward(): boolean {
+    return this.historyController.canStepBackward();
+  }
+
+  /**
+   * Checks if we're currently stepping through animation states.
+   */
+  isAnimating(): boolean {
+    return this.historyController.isAnimating();
+  }
+
+  /**
+   * Gets the current animation index within the current operation.
+   */
+  getCurrentAnimationIndex(): number {
+    return this.historyController.getCurrentAnimationIndex();
+  }
+
+  /**
+   * Gets the current operation index.
+   */
+  getCurrentOperationIndex(): number {
+    return this.historyController.getCurrentOperationIndex();
+  }
+
+  /**
+   * Gets all animation states for the current operation.
+   */
+  getCurrentOperationStates(): readonly BinaryTree[] {
+    const currentIndex = this.historyController.getCurrentOperationIndex();
+    return this.historyController.getStates(currentIndex);
+  }
+
+  /**
+   * Gets the current operation from history.
+   */
+  getCurrentOperation(): Operation | null {
+    const history = this.historyController.getHistory();
+    const currentIndex = this.historyController.getCurrentOperationIndex();
+    
+    if (currentIndex >= 0 && currentIndex < history.length) {
+      return history[currentIndex].operation;
+    }
+    
+    return null;
   }
 
   /**

@@ -1,17 +1,18 @@
 import * as d3 from 'd3';
+import { AnimationController } from '../../../lib/core/AnimationController';
 import type { BinaryTreeNode } from '../types';
+import type { AnimationHint } from '../../../lib/core/types';
 
 /**
  * Visual state interface for the binary tree renderer
+ * Now simplified to focus on pure data representation
  */
 export interface BinaryTreeVisualState {
   tree: BinaryTreeNode | null;
-  visitedNodes: Set<number>;
-  highlightPath: number[];
-  currentNode: number | null;
-  traversalLinks: Array<{from: number, to: number}>;
   animationSpeed: 'slow' | 'normal' | 'fast';
   theme: 'light' | 'dark';
+  // Animation hints - the ONLY source of animation data
+  animationHints?: AnimationHint[];
 }
 
 /**
@@ -122,6 +123,7 @@ let isZoomInitialized = false;
 
 /**
  * Render the binary tree with D3 including zoom and pan functionality
+ * Animation is now handled solely through AnimationController via hints
  */
 export function renderBinaryTree(
   svgElement: SVGSVGElement, 
@@ -133,13 +135,13 @@ export function renderBinaryTree(
       hasSvgElement: !!svgElement,
       hasTree: !!visualState.tree,
       treeValue: visualState.tree?.value,
-      visitedNodesCount: visualState.visitedNodes.size,
       theme: visualState.theme,
-      animationSpeed: visualState.animationSpeed
+      animationSpeed: visualState.animationSpeed,
+      animationHintsCount: visualState.animationHints?.length || 0
     });
   }
 
-  const { tree, visitedNodes, currentNode, theme } = visualState;
+  const { tree, theme } = visualState;
   
   if (!tree) {
     if (import.meta.env.DEV) {
@@ -244,174 +246,182 @@ export function renderBinaryTree(
     mainGroup = svg.append('g').attr('class', 'main-group');
   }
 
-  // Set up zoom behavior if not already done
+  // Initialize zoom behavior if needed
   if (!zoomBehavior) {
-    zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([CONFIG.zoom.minScale, CONFIG.zoom.maxScale])
-      .on('zoom', (event) => {
-        mainGroup.attr('transform', event.transform);
-      });
-
-    svg.call(zoomBehavior);
-
-    // Double-click to reset zoom
-    svg.on('dblclick.zoom', () => {
-      const scaleX = containerWidth / contentWidth;
-      const scaleY = containerHeight / contentHeight;
-      const fitScale = Math.min(scaleX, scaleY, 1) * CONFIG.zoom.initialScaleFactor;
-      
-      const centerX = containerWidth / 2 - (contentWidth * fitScale) / 2;
-      const centerY = containerHeight / 2 - (contentHeight * fitScale) / 2;
-      
-      const resetTransform = d3.zoomIdentity
-        .translate(centerX, centerY)
-        .scale(fitScale)
-        .translate(-bounds.minX, -bounds.minY);
-      
-      svg.transition()
-        .duration(750)
-        .call(zoomBehavior!.transform, resetTransform);
-    });
+    initializeZoomBehavior(svg, mainGroup, contentWidth, contentHeight, containerWidth, containerHeight, bounds);
   }
 
   // Set initial zoom if not already initialized
   if (!isZoomInitialized) {
-    const scaleX = containerWidth / contentWidth;
-    const scaleY = containerHeight / contentHeight;
-    const initialScale = Math.min(scaleX, scaleY, 1) * CONFIG.zoom.initialScaleFactor;
-    
-    const centerX = containerWidth / 2 - (contentWidth * initialScale) / 2;
-    const centerY = containerHeight / 2 - (contentHeight * initialScale) / 2;
-    
-    const initialTransform = d3.zoomIdentity
-      .translate(centerX, centerY)
-      .scale(initialScale)
-      .translate(-bounds.minX, -bounds.minY);
-    
-    svg.call(zoomBehavior.transform, initialTransform);
+    setInitialZoom(svg, zoomBehavior!, contentWidth, contentHeight, containerWidth, containerHeight, bounds);
     isZoomInitialized = true;
   }
 
-  // Clear previous content in main group
-  mainGroup.selectAll('*').remove();
-
-  // Create groups for links and nodes
-  const linkGroup = mainGroup.append('g').attr('class', 'links');
-  const nodeGroup = mainGroup.append('g').attr('class', 'nodes');
+  // Get or create persistent groups for links and nodes (don't clear them)
+  let linkGroup = mainGroup.select<SVGGElement>('g.links');
+  if (linkGroup.empty()) {
+    linkGroup = mainGroup.append('g').attr('class', 'links');
+  }
+  
+  let nodeGroup = mainGroup.select<SVGGElement>('g.nodes');
+  if (nodeGroup.empty()) {
+    nodeGroup = mainGroup.append('g').attr('class', 'nodes');
+  }
 
   // Get color scheme
   const colors = CONFIG.colors[theme];
 
-  // Collect all nodes and links
-  const nodes: Array<{value: number, x: number, y: number, state: string}> = [];
-  const links: Array<{source: {x: number, y: number}, target: {x: number, y: number}, state: string}> = [];
+  if (import.meta.env.DEV) {
+    console.log('🎨 Color scheme:', { theme, colors });
+  }
 
-  const collectNodesAndLinks = (node: BinaryTreeNode | null): void => {
-    if (!node) return;
-
-    const pos = positions.get(node.value);
-    if (!pos) return;
-
-    // Determine node state for styling
-    let nodeState = 'default';
-    if (currentNode === node.value) {
-      nodeState = 'active';
-    } else if (visitedNodes.has(node.value)) {
-      nodeState = 'visited';
-    }
-
-    nodes.push({
-      value: node.value,
-      x: pos.x,
-      y: pos.y,
-      state: nodeState
-    });
-
-    // Add links to children
-    if (node.left) {
-      const childPos = positions.get(node.left.value);
-      if (childPos) {
-        links.push({
-          source: { x: pos.x, y: pos.y },
-          target: { x: childPos.x, y: childPos.y },
-          state: nodeState
-        });
-      }
-      collectNodesAndLinks(node.left);
-    }
-
-    if (node.right) {
-      const childPos = positions.get(node.right.value);
-      if (childPos) {
-        links.push({
-          source: { x: pos.x, y: pos.y },
-          target: { x: childPos.x, y: childPos.y },
-          state: nodeState
-        });
-      }
-      collectNodesAndLinks(node.right);
-    }
-  };
-
-  collectNodesAndLinks(tree);
+  // Collect all nodes and links for rendering
+  const { nodes, links } = collectNodesAndLinks(tree, positions);
 
   if (import.meta.env.DEV) {
     console.log('🌳 renderBinaryTree: Collected nodes and links', {
       nodesCount: nodes.length,
       linksCount: links.length,
-      nodes: nodes.map(n => ({ value: n.value, state: n.state })),
-      links: links.length
+      nodes: nodes.map((n: NodeData) => ({ value: n.value, state: n.state }))
     });
   }
 
-  // Render links
+  // Get animation duration for transitions
+  const animationDuration = getAnimationDuration(visualState.animationSpeed);
+
+  // Render links with D3 join pattern
   linkGroup.selectAll('line')
-    .data(links)
-    .enter()
-    .append('line')
-    .attr('x1', d => d.source.x)
-    .attr('y1', d => d.source.y)
-    .attr('x2', d => d.target.x)
-    .attr('y2', d => d.target.y)
-    .attr('stroke', d => {
-      switch (d.state) {
-        case 'active': return colors.link.active;
-        case 'visited': return colors.link.visited;
-        default: return colors.link.default;
+    .data(links, (d: any) => (d as LinkData).id)
+    .join(
+      enter => enter.append('line')
+        .attr('x1', (d: any) => (d as LinkData).source.x)
+        .attr('y1', (d: any) => (d as LinkData).source.y)
+        .attr('x2', (d: any) => (d as LinkData).source.x) // Start from source for animation
+        .attr('y2', (d: any) => (d as LinkData).source.y)
+        .attr('stroke', colors.link.default)
+        .attr('stroke-width', 2)
+        .attr('opacity', 0)
+        .call(enter => enter.transition()
+          .duration(animationDuration)
+          .attr('x2', (d: any) => (d as LinkData).target.x)
+          .attr('y2', (d: any) => (d as LinkData).target.y)
+          .attr('opacity', 0.8)
+        ),
+      update => update
+        .call(update => update.transition()
+          .duration(animationDuration)
+          .attr('x1', (d: any) => (d as LinkData).source.x)
+          .attr('y1', (d: any) => (d as LinkData).source.y)
+          .attr('x2', (d: any) => (d as LinkData).target.x)
+          .attr('y2', (d: any) => (d as LinkData).target.y)
+          .attr('stroke', colors.link.default)
+          .attr('opacity', 0.8)
+        ),
+      exit => exit
+        .call(exit => exit.transition()
+          .duration(animationDuration)
+          .attr('opacity', 0)
+          .remove()
+        )
+    )
+    // Execute animations programmatically for each link
+    .each(function(d: any) {
+      const linkData = d as LinkData;
+      if (visualState.animationHints && visualState.animationHints.length > 0) {
+        // Create node data objects for the animation context
+        const sourceNodeData = {
+          value: linkData.sourceValue,
+          left: null,
+          right: null,
+          state: 'default' as const
+        };
+        
+        const targetNodeData = {
+          value: linkData.targetValue,
+          left: null,
+          right: null,
+          state: 'default' as const
+        };
+
+        // Execute all animations that target this specific link
+        AnimationController.executeLinkAnimations(
+          this as Element,
+          linkData.id,
+          sourceNodeData,
+          targetNodeData,
+          visualState.animationHints
+        );
       }
-    })
-    .attr('stroke-width', 2)
-    .attr('opacity', 0.8);
+    });
 
-  // Render nodes
-  const nodeElements = nodeGroup.selectAll('g')
-    .data(nodes)
-    .enter()
-    .append('g')
-    .attr('transform', d => `translate(${d.x}, ${d.y})`)
-    .style('cursor', 'pointer');
+  // Render nodes with D3 join pattern
+  const nodeElements = nodeGroup.selectAll('g.node')
+    .data(nodes, (d: any) => (d as NodeData).value)
+    .join(
+      enter => {
+        const nodeGroup = enter.append('g')
+          .attr('class', 'node')
+          .attr('transform', (d: any) => `translate(${(d as NodeData).x}, ${(d as NodeData).y})`)
+          .style('cursor', 'pointer');
 
-  // Node circles
-  nodeElements.append('circle')
-    .attr('r', CONFIG.nodeRadius)
-    .attr('fill', d => {
-      switch (d.state) {
-        case 'active': return colors.node.active;
-        case 'visited': return colors.node.visited;
-        default: return colors.node.default;
+        // Add circles
+        nodeGroup.append('circle')
+          .attr('r', CONFIG.nodeRadius)
+          .attr('fill', (d: any) => getNodeFillColor((d as NodeData).state, colors))
+          .attr('stroke', colors.node.border)
+          .attr('stroke-width', 2)
+          .style('opacity', 1);
+
+        // Add text
+        nodeGroup.append('text')
+          .attr('text-anchor', 'middle')
+          .attr('dy', '0.35em')
+          .attr('font-size', CONFIG.fontSize)
+          .attr('font-weight', 'bold')
+          .attr('fill', colors.node.text)
+          .text((d: any) => (d as NodeData).value);
+
+        return nodeGroup;
+      },
+      update => {
+        // Update positions and states with smooth transitions
+        const updatedNodes = update
+          .call(update => update.transition()
+            .duration(animationDuration / 2)
+            .attr('transform', (d: any) => `translate(${(d as NodeData).x}, ${(d as NodeData).y})`)
+          );
+
+        // Update circle colors based on state changes
+        updatedNodes.select('circle')
+          .transition()
+          .duration(animationDuration / 2)
+          .attr('fill', (d: any) => getNodeFillColor((d as NodeData).state, colors));
+
+        return updatedNodes;
+      },
+      exit => exit
+        .call(exit => exit.transition()
+          .duration(animationDuration)
+          .call(transition => {
+            transition.select('circle').attr('r', 0);
+            transition.select('text').style('opacity', 0);
+          })
+          .remove()
+        )
+    )
+    // Execute animations programmatically for each node
+    .each(function(d: any) {
+      const nodeData = d as NodeData;
+      if (visualState.animationHints && visualState.animationHints.length > 0) {
+        // Execute all animations that target this specific node
+        AnimationController.executeNodeAnimations(
+          this as Element,
+          nodeData.value,
+          nodeData,
+          visualState.animationHints
+        );
       }
-    })
-    .attr('stroke', colors.node.border)
-    .attr('stroke-width', 2);
-
-  // Node text
-  nodeElements.append('text')
-    .attr('text-anchor', 'middle')
-    .attr('dy', '0.35em')
-    .attr('font-size', CONFIG.fontSize)
-    .attr('font-weight', 'bold')
-    .attr('fill', colors.node.text)
-    .text(d => d.value);
+    });
 
   // Add hover effects
   nodeElements
@@ -427,4 +437,179 @@ export function renderBinaryTree(
         .duration(200)
         .attr('stroke-width', 2);
     });
+
+  // Handle tree-level animations
+  if (visualState.animationHints && visualState.animationHints.length > 0) {
+    const treeHints = AnimationController.getTreeAnimations(visualState.animationHints);
+    if (treeHints.length > 0) {
+      AnimationController.processTreeHints(svgElement, treeHints);
+    }
+  }
+}
+
+/**
+ * Helper function to get node fill color based on state
+ */
+function getNodeFillColor(state: string, colors: any): string {
+  switch (state) {
+    case 'active': return colors.node.active;
+    case 'visited': return colors.node.visited;
+    default: return colors.node.default;
+  }
+}
+
+/**
+ * Helper function to get animation duration based on speed
+ */
+function getAnimationDuration(speed: 'slow' | 'normal' | 'fast'): number {
+  switch (speed) {
+    case 'slow': return 1000;
+    case 'fast': return 300;
+    default: return 600;
+  }
+}
+
+/**
+ * Initialize zoom behavior for the SVG
+ */
+function initializeZoomBehavior(
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+  mainGroup: d3.Selection<SVGGElement, unknown, null, undefined>,
+  contentWidth: number,
+  contentHeight: number,
+  containerWidth: number,
+  containerHeight: number,
+  bounds: { minX: number; maxX: number; minY: number; maxY: number }
+): void {
+  zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
+    .scaleExtent([CONFIG.zoom.minScale, CONFIG.zoom.maxScale])
+    .on('zoom', (event) => {
+      mainGroup.attr('transform', event.transform);
+    });
+
+  svg.call(zoomBehavior);
+
+  // Double-click to reset zoom
+  svg.on('dblclick.zoom', () => {
+    const scaleX = containerWidth / contentWidth;
+    const scaleY = containerHeight / contentHeight;
+    const fitScale = Math.min(scaleX, scaleY, 1) * CONFIG.zoom.initialScaleFactor;
+    
+    const centerX = containerWidth / 2 - (contentWidth * fitScale) / 2;
+    const centerY = containerHeight / 2 - (contentHeight * fitScale) / 2;
+    
+    const resetTransform = d3.zoomIdentity
+      .translate(centerX, centerY)
+      .scale(fitScale)
+      .translate(-bounds.minX, -bounds.minY);
+    
+    svg.transition()
+      .duration(750)
+      .call(zoomBehavior!.transform, resetTransform);
+  });
+}
+
+/**
+ * Set initial zoom for the tree view
+ */
+function setInitialZoom(
+  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
+  zoomBehavior: d3.ZoomBehavior<SVGSVGElement, unknown>,
+  contentWidth: number,
+  contentHeight: number,
+  containerWidth: number,
+  containerHeight: number,
+  bounds: { minX: number; maxX: number; minY: number; maxY: number }
+): void {
+  const scaleX = containerWidth / contentWidth;
+  const scaleY = containerHeight / contentHeight;
+  const initialScale = Math.min(scaleX, scaleY, 1) * CONFIG.zoom.initialScaleFactor;
+  
+  const centerX = containerWidth / 2 - (contentWidth * initialScale) / 2;
+  const centerY = containerHeight / 2 - (contentHeight * initialScale) / 2;
+  
+  const initialTransform = d3.zoomIdentity
+    .translate(centerX, centerY)
+    .scale(initialScale)
+    .translate(-bounds.minX, -bounds.minY);
+  
+  svg.call(zoomBehavior.transform, initialTransform);
+}
+
+/**
+ * Types for nodes and links data
+ */
+type NodeData = {
+  value: number;
+  x: number;
+  y: number;
+  state: string;
+};
+
+type LinkData = {
+  source: { x: number; y: number };
+  target: { x: number; y: number };
+  id: string;
+  sourceValue: number;
+  targetValue: number;
+};
+
+/**
+ * Collect all nodes and links for rendering
+ */
+function collectNodesAndLinks(
+  tree: BinaryTreeNode,
+  positions: Map<number, { x: number; y: number }>
+): { nodes: NodeData[]; links: LinkData[] } {
+  const nodes: NodeData[] = [];
+  const links: LinkData[] = [];
+
+  const traverse = (node: BinaryTreeNode | null): void => {
+    if (!node) return;
+
+    const pos = positions.get(node.value);
+    if (!pos) return;
+
+    // Use the node's internal state directly
+    const nodeState = node.state || 'default';
+
+    nodes.push({
+      value: node.value,
+      x: pos.x,
+      y: pos.y,
+      state: nodeState
+    });
+
+    // Add links to children with unique IDs
+    if (node.left) {
+      const childPos = positions.get(node.left.value);
+      if (childPos) {
+        links.push({
+          source: { x: pos.x, y: pos.y },
+          target: { x: childPos.x, y: childPos.y },
+          id: `${node.value}-${node.left.value}`,
+          sourceValue: node.value,
+          targetValue: node.left.value
+        });
+      }
+      traverse(node.left);
+    }
+
+    if (node.right) {
+      const childPos = positions.get(node.right.value);
+      if (childPos) {
+        links.push({
+          source: { x: pos.x, y: pos.y },
+          target: { x: childPos.x, y: childPos.y },
+          id: `${node.value}-${node.right.value}`,
+          sourceValue: node.value,
+          targetValue: node.right.value
+        });
+      }
+      traverse(node.right);
+    }
+  };
+
+  traverse(tree);
+  return { nodes, links };
 }

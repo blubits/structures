@@ -1,419 +1,367 @@
-/**
- * Debug Panel Component (Declarative Version)
- * 
- * A comprehensive debug panel that displays raw data structures and internal state
- * for debugging purposes. Only rendered in development mode.
- * 
- * This component matches the look and functionality of the deprecated version
- * but works with the declarative BST system.
- */
-
-import React, { useState, useMemo } from 'react';
-import type { BinaryTreeNode, BinaryTreeState } from '../lib/types/binary-tree-node';
-import { TransitionDetector } from '../lib/animation/transition-detector';
-import { AnimationMapper } from '../lib/animation/animation-mapper';
-import { BinaryTreeValidator } from '../lib/binary-tree-validator';
+import { useState } from 'react';
+import { ChevronDown, ChevronRight, ChevronUp, Bug, Code, GitBranch } from 'lucide-react';
+import type { BinaryTree, BinaryTreeNode } from '../renderers/BinaryTree/types';
+import type { OperationGroup } from '../lib/core/types';
 
 interface DebugPanelProps {
-  currentTree: BinaryTreeNode | null;
-  previousTree: BinaryTreeNode | null;
-  selectedOperationIndex: number;
-  currentStepIndex: number;
-  operations: any[];
-  operationStates?: BinaryTreeState[];
-  position?: 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right';
+  currentState: BinaryTree | null;
+  operationHistory: readonly OperationGroup<BinaryTree>[];
+  currentOperationIndex: number;
+  currentAnimationIndex: number;
+  isAnimating: boolean;
   className?: string;
 }
 
-export const DebugPanel: React.FC<DebugPanelProps> = ({
-  currentTree,
-  previousTree,
-  selectedOperationIndex,
-  currentStepIndex,
-  operations,
-  operationStates,
-  position = 'bottom-left',
-  className = '',
-}) => {
+interface TreeNodeDebugInfo {
+  value: number;
+  depth: number;
+  leftChild?: number;
+  rightChild?: number;
+  parent?: number;
+  isLeaf: boolean;
+  subtreeSize: number;
+}
+
+type TabType = 'tree' | 'operations';
+
+/**
+ * Debug Panel for BST Visualizer
+ * 
+ * A bottom-right expandable panel with two tabs:
+ * - Tree: Parsed tree state and raw JSON
+ * - Operations: Complete operation history grouped by operation
+ */
+export function DebugPanel({
+  currentState,
+  operationHistory,
+  currentOperationIndex,
+  currentAnimationIndex,
+  isAnimating,
+  className = ''
+}: DebugPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [activeTab, setActiveTab] = useState<'tree' | 'visual-state' | 'operations'>(() => {
-    return (operations && operations.length > 0) ? 'operations' : 'tree';
-  });
-  const [expandedOperations, setExpandedOperations] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<TabType>('tree');
+  const [expandedOperations, setExpandedOperations] = useState<Set<number>>(new Set());
 
-  // Only render in development mode
-  if (!import.meta.env.DEV) {
-    return null;
-  }
-
-  // Detect transitions between previous and current tree
-  const transitions = useMemo(() => {
-    if (!previousTree && !currentTree) return [];
-    return TransitionDetector.detectTransitions(previousTree, currentTree);
-  }, [previousTree, currentTree]);
-
-  // Map transitions to animations
-  const animations = useMemo(() => {
-    return transitions.map(transition => ({
-      transition,
-      animation: AnimationMapper.getAnimation(transition)
-    }));
-  }, [transitions]);
-
-  // Validate current tree
-  const validation = useMemo(() => {
-    if (!currentTree) return { isValid: true, errors: [] };
-    return BinaryTreeValidator.validateTree(currentTree);
-  }, [currentTree]);
-
-  const positionClasses = {
-    'bottom-left': 'bottom-6 left-6',
-    'bottom-right': 'bottom-6 right-6',
-    'top-left': 'top-6 left-6',
-    'top-right': 'top-6 right-6',
+  const toggleOperation = (operationIndex: number) => {
+    const newExpanded = new Set(expandedOperations);
+    if (newExpanded.has(operationIndex)) {
+      newExpanded.delete(operationIndex);
+    } else {
+      newExpanded.add(operationIndex);
+    }
+    setExpandedOperations(newExpanded);
   };
 
-  const getBSTTreeStructure = (node: BinaryTreeNode | null, depth = 0): any => {
-    if (!node) return null;
-    return {
-      value: node.value,
-      state: node.state,
-      traversalDirection: node.traversalDirection,
-      depth,
-      left: getBSTTreeStructure(node.left, depth + 1),
-      right: getBSTTreeStructure(node.right, depth + 1),
+  // Analyze tree structure
+  const analyzeTree = (root: BinaryTreeNode | null): {
+    nodes: TreeNodeDebugInfo[];
+    maxDepth: number;
+    totalNodes: number;
+    isValidBST: boolean;
+  } => {
+    if (!root) {
+      return { nodes: [], maxDepth: 0, totalNodes: 0, isValidBST: true };
+    }
+
+    const nodes: TreeNodeDebugInfo[] = [];
+    let maxDepth = 0;
+
+    const traverse = (node: BinaryTreeNode, depth: number, parent?: number): number => {
+      maxDepth = Math.max(maxDepth, depth);
+      
+      const leftSize = node.left ? traverse(node.left, depth + 1, node.value) : 0;
+      const rightSize = node.right ? traverse(node.right, depth + 1, node.value) : 0;
+      const subtreeSize = 1 + leftSize + rightSize;
+
+      nodes.push({
+        value: node.value,
+        depth,
+        leftChild: node.left?.value,
+        rightChild: node.right?.value,
+        parent,
+        isLeaf: !node.left && !node.right,
+        subtreeSize
+      });
+
+      return subtreeSize;
     };
-  };
 
-  const getOperationsData = () => {
-    if (!operations || operations.length === 0) return {};
-    
-    // Group operations and create detailed step information
-    const operationGroups: Record<string, any[]> = {};
-    
-    operations.forEach((operation, index) => {
-      const operationKey = `${operation.type || operation.operation || 'operation'}_${operation.value || operation.searchValue || operation.insertValue || operation.deleteValue || index}`;
+    traverse(root, 0);
+
+    // Check BST property
+    const isValidBST = nodes.every(node => {
+      const leftChild = nodes.find(n => n.value === node.leftChild);
+      const rightChild = nodes.find(n => n.value === node.rightChild);
       
-      if (!operationGroups[operationKey]) {
-        operationGroups[operationKey] = [];
-      }
-      
-      // Create detailed step information similar to deprecated version
-      const stepData = {
-        operationIndex: index,
-        isCurrent: index === selectedOperationIndex,
-        stepIndex: currentStepIndex,
-        id: operation.id || `op-${index}`,
-        operation: operation.type || operation.operation,
-        description: operation.description || `${operation.type || 'Operation'} ${operation.value || ''}`,
-        value: operation.value,
-        currentState: operationStates ? operationStates[Math.min(currentStepIndex, operationStates.length - 1)] : null,
-        
-        // Extract step-level details if available from states
-        metadata: {
-          description: operation.description || `Performing ${operation.type || 'operation'}${operation.value ? ` with value ${operation.value}` : ''}`,
-          searchValue: operation.value,
-          insertValue: operation.type === 'insert' ? operation.value : undefined,
-          deleteValue: operation.type === 'delete' ? operation.value : undefined,
-          operationType: operation.type,
-          timestamp: operation.timestamp,
-          isComplete: currentStepIndex >= (operationStates?.length || 1) - 1,
-        },
-        
-        // Include transitions and validation for this step
-        transitions: transitions,
-        validation: validation,
-        
-        // Tree state information
-        currentTree: currentTree ? {
-          value: currentTree.value,
-          state: currentTree.state,
-          traversalDirection: currentTree.traversalDirection,
-          left: currentTree.left?.value || null,
-          right: currentTree.right?.value || null,
-        } : null,
-      };
-      
-      operationGroups[operationKey].push(stepData);
+      return (!leftChild || leftChild.value < node.value) && 
+             (!rightChild || rightChild.value > node.value);
     });
+
+    return { nodes, maxDepth, totalNodes: nodes.length, isValidBST };
+  };
+
+  const treeAnalysis = currentState?.root ? analyzeTree(currentState.root) : null;
+
+  const formatTimestamp = (timestamp: number) => {
+    return new Date(timestamp).toLocaleTimeString();
+  };
+
+  // Create a clean version of the current state for JSON display
+  const cleanStateForJson = (state: BinaryTree | null) => {
+    if (!state) return null;
     
-    return operationGroups;
-  };
-
-  const debugData = {
-    tree: {
-      structure: getBSTTreeStructure(currentTree),
-      nodeCount: currentTree ? countNodes(currentTree) : 0,
-      maxDepth: currentTree ? getMaxDepth(currentTree) : 0,
-      isBalanced: currentTree ? isTreeBalanced(currentTree) : null,
-    },
-    operations: getOperationsData(),
-    custom: {
-      transitions,
-      animations,
-      validation,
-      selectedOperationIndex,
-      currentStepIndex,
-      operationStatesLength: operationStates?.length || 0,
-    },
-  };
-
-  const tabs = [
-    { id: 'tree', label: 'Tree', icon: '🌳' },
-    { id: 'visual-state', label: 'Visual State', icon: '🎨', disabled: false },
-    { id: 'operations', label: 'Operations', icon: '⚡', disabled: !operations || operations.length === 0 },
-  ];
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'tree':
-        return (
-          <pre className="text-xs font-mono text-green-300 bg-black/30 rounded p-2 overflow-x-auto whitespace-pre-wrap">
-            {JSON.stringify(debugData.tree, null, 2)}
-          </pre>
-        );
-      case 'visual-state':
-        return renderVisualStateTab();
-      case 'operations':
-        return renderOperationsTab();
-      default:
-        return (
-          <div className="text-white/60 text-xs italic p-2">
-            Select a tab to view debug information
-          </div>
-        );
-    }
-  };
-
-  const renderVisualStateTab = () => {
-    return (
-      <div className="space-y-3">
-        {/* Declarative State Summary */}
-        <div className="bg-black/40 rounded p-2 border border-white/20">
-          <div className="text-xs text-white/80 mb-2 flex items-center gap-2">
-            <span className="text-blue-300">🎨 Declarative State Summary</span>
-          </div>
-          <div className="text-xs space-y-1">
-            <div>Current Operation: <span className="text-yellow-300">{selectedOperationIndex >= 0 ? `${selectedOperationIndex + 1} of ${operations.length}` : 'None'}</span></div>
-            <div>Current Step: <span className="text-yellow-300">{currentStepIndex >= 0 ? `${currentStepIndex + 1}` : 'None'}</span></div>
-            <div>Detected Transitions: <span className="text-orange-300">{transitions.length}</span></div>
-            <div>Tree Valid: <span className={validation.isValid ? "text-green-300" : "text-red-300"}>{validation.isValid ? 'Yes' : 'No'}</span></div>
-          </div>
-        </div>
-
-        {/* Detected Transitions */}
-        {transitions.length > 0 && (
-          <div className="bg-black/40 rounded p-2 border border-white/20">
-            <div className="text-xs text-white/80 mb-2 flex items-center gap-2">
-              <span className="text-orange-300">🔄 Detected Transitions</span>
-            </div>
-            <div className="text-xs space-y-1">
-              {transitions.map((transition, index) => (
-                <div key={index} className="bg-black/20 rounded p-1">
-                  <div className="flex gap-2">
-                    <span className="text-blue-300">{transition.type}:</span>
-                    <span className="text-yellow-300">{transition.path.join(' → ') || 'root'}</span>
-                  </div>
-                  {transition.from !== undefined && (
-                    <div className="text-gray-300 ml-2">From: {JSON.stringify(transition.from)}</div>
-                  )}
-                  {transition.to !== undefined && (
-                    <div className="text-gray-300 ml-2">To: {JSON.stringify(transition.to)}</div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Inferred Animations */}
-        {animations.length > 0 && (
-          <div className="bg-black/40 rounded p-2 border border-white/20">
-            <div className="text-xs text-white/80 mb-2 flex items-center gap-2">
-              <span className="text-purple-300">🎬 Inferred Animations</span>
-            </div>
-            <div className="text-xs space-y-1">
-              {animations.map((anim, index) => (
-                <div key={index} className="bg-black/20 rounded p-1">
-                  <div className="flex gap-2">
-                    <span className="text-blue-300">{anim.transition.type}:</span>
-                    {anim.animation && (
-                      <>
-                        <span className="text-green-300">{anim.animation.type}</span>
-                        <span className="text-yellow-300">({anim.animation.duration}ms)</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Validation Errors */}
-        {!validation.isValid && (
-          <div className="bg-black/40 rounded p-2 border border-red-500/50">
-            <div className="text-xs text-white/80 mb-2 flex items-center gap-2">
-              <span className="text-red-300">❌ Validation Errors</span>
-            </div>
-            <div className="text-xs space-y-1">
-              {validation.errors.map((error, index) => (
-                <div key={index} className="text-red-300">{error}</div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Raw Declarative State */}
-        <div className="bg-black/40 rounded p-2 border border-white/20">
-          <div className="text-xs text-white/80 mb-2 flex items-center gap-2">
-            <span className="text-gray-300">📋 Raw Declarative State</span>
-          </div>
-          <pre className="text-xs font-mono text-green-300 bg-black/30 rounded p-2 overflow-x-auto whitespace-pre-wrap">
-            {JSON.stringify({
-              currentTree: getBSTTreeStructure(currentTree),
-              transitions,
-              validation,
-              selectedOperationIndex,
-              currentStepIndex,
-            }, null, 2)}
-          </pre>
-        </div>
-      </div>
-    );
-  };
-
-  const renderOperationsTab = () => {
-    const toggleOperation = (operationKey: string) => {
-      const newExpanded = new Set(expandedOperations);
-      if (newExpanded.has(operationKey)) {
-        newExpanded.delete(operationKey);
-      } else {
-        newExpanded.add(operationKey);
-      }
-      setExpandedOperations(newExpanded);
+    // Remove React-specific properties and circular references
+    const cleanNode = (node: BinaryTreeNode | null): any => {
+      if (!node) return null;
+      return {
+        value: node.value,
+        left: cleanNode(node.left),
+        right: cleanNode(node.right),
+        state: node.state,
+        id: node.id,
+        metadata: node.metadata
+      };
     };
 
-    if (!debugData.operations || Object.keys(debugData.operations).length === 0) {
-      return (
-        <div className="text-white/60 text-xs italic p-2">
-          No operations available
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-2">
-        {Object.entries(debugData.operations).map(([operationType, operationData]) => {
-          const operationKey = `${operationType}`;
-          const isExpanded = expandedOperations.has(operationKey);
-          const stepCount = Array.isArray(operationData) ? operationData.length : 0;
-          
-          return (
-            <div key={operationKey} className="border border-white/20 rounded">
-              <button
-                onClick={() => toggleOperation(operationKey)}
-                className="w-full px-3 py-2 text-left text-xs hover:bg-white/10 transition-colors flex items-center justify-between"
-              >
-                <span className="text-blue-300 font-mono flex items-center gap-2">
-                  <span className="text-white/60">{isExpanded ? '▼' : '▶'}</span>
-                  <span className="capitalize">{operationType}</span>
-                  <span className="text-white/60 text-xs">({stepCount} ops)</span>
-                </span>
-              </button>
-              
-              {isExpanded && (
-                <div className="border-t border-white/20 p-2">
-                  <pre className="text-xs font-mono text-green-300 bg-black/40 rounded p-2 overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto">
-                    {JSON.stringify(operationData, null, 2)}
-                  </pre>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
+    return {
+      root: cleanNode(state.root),
+      nodeCount: state.nodeCount,
+      name: state.name,
+      animationHints: state.animationHints,
+      _metadata: state._metadata
+    };
   };
-
-  const hasActiveOperation = selectedOperationIndex >= 0 && currentStepIndex >= 0;
 
   return (
-    <div className={`absolute ${positionClasses[position]} bg-black/80 backdrop-blur-sm text-white rounded-lg text-sm pointer-events-auto z-50 ${className}`}>
-      <button
+    <div 
+      className={`fixed bottom-6 right-6 z-40 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg shadow-xl transition-all duration-300 ${className}`}
+    >
+      {/* Header/Collapsed Bar */}
+      <div 
+        className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-3 py-2 text-left text-xs hover:bg-white/10 transition-colors flex items-center justify-between min-w-[120px]"
       >
-        <span className="text-orange-300 font-mono flex items-center gap-1">
-          🐛 Debug
-          {hasActiveOperation && <span className="text-red-400 animate-pulse">●</span>}
-          {transitions.length > 0 && (
-            <span className="bg-orange-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center ml-1">
-              {transitions.length}
+        <div className="flex items-center gap-2">
+          <Bug size={16} className="text-blue-600" />
+          <span className="font-medium text-sm text-gray-800 dark:text-gray-200">Debug Panel</span>
+          {isAnimating && (
+            <span className="text-xs bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 px-2 py-1 rounded">
+              Animating
             </span>
           )}
-        </span>
-        <span className="text-white/60">{isExpanded ? '▼' : '▶'}</span>
-      </button>
-      
+        </div>
+        <div className="flex items-center gap-2">
+          {isExpanded && (
+            <span className="text-xs text-gray-500">{operationHistory.length} ops</span>
+          )}
+          {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </div>
+      </div>
+
+      {/* Expanded Content */}
       {isExpanded && (
-        <div className="border-t border-white/20">
-          {/* Tab Navigation */}
-          <div className="flex border-b border-white/20">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                disabled={tab.disabled}
-                className={`px-2 py-1 text-xs flex items-center gap-1 transition-colors ${
-                  activeTab === tab.id
-                    ? 'bg-blue-600 text-white'
-                    : tab.disabled
-                    ? 'text-white/40 cursor-not-allowed'
-                    : 'text-white/80 hover:bg-white/10'
-                }`}
-              >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
-              </button>
-            ))}
+        <div className="border-t border-gray-200 dark:border-zinc-700">
+          {/* Tab Headers */}
+          <div className="flex border-b border-gray-200 dark:border-zinc-700">
+            <button
+              onClick={() => setActiveTab('tree')}
+              className={`flex-1 flex items-center justify-center gap-2 p-3 text-sm font-medium transition-colors ${
+                activeTab === 'tree'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}
+            >
+              <GitBranch size={14} />
+              Tree
+            </button>
+            <button
+              onClick={() => setActiveTab('operations')}
+              className={`flex-1 flex items-center justify-center gap-2 p-3 text-sm font-medium transition-colors ${
+                activeTab === 'operations'
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}
+            >
+              <Code size={14} />
+              Operations
+            </button>
           </div>
 
           {/* Tab Content */}
-          <div className="p-3 max-h-64 overflow-y-auto min-w-[300px] max-w-[500px]">
-            {renderTabContent()}
+          <div className="w-96 max-h-96 overflow-y-auto">
+            {/* Tree Tab */}
+            {activeTab === 'tree' && (
+              <div className="p-4 space-y-4">
+                {/* Parsed Tree State */}
+                <div>
+                  <h4 className="font-medium text-sm mb-2 text-gray-800 dark:text-gray-200">Tree Analysis</h4>
+                  {currentState ? (
+                    <div className="space-y-3 text-sm">
+                      {/* Basic Info */}
+                      <div className="grid grid-cols-2 gap-3 p-3 bg-gray-50 dark:bg-zinc-700 rounded">
+                        <div>
+                          <span className="text-gray-600 dark:text-gray-400 text-xs">Name:</span>
+                          <div className="font-mono text-xs">{currentState.name || 'Unnamed'}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-600 dark:text-gray-400 text-xs">Nodes:</span>
+                          <div className="font-mono text-xs">{currentState.nodeCount}</div>
+                        </div>
+                        {treeAnalysis && (
+                          <>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400 text-xs">Max Depth:</span>
+                              <div className="font-mono text-xs">{treeAnalysis.maxDepth}</div>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400 text-xs">Valid BST:</span>
+                              <div className={`font-mono text-xs ${treeAnalysis.isValidBST ? 'text-green-600' : 'text-red-600'}`}>
+                                {treeAnalysis.isValidBST ? '✓ Yes' : '✗ No'}
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Tree Structure */}
+                      {treeAnalysis && treeAnalysis.nodes.length > 0 && (
+                        <div>
+                          <span className="text-gray-600 dark:text-gray-400 text-xs">Structure:</span>
+                          <div className="mt-1 max-h-32 overflow-y-auto bg-gray-50 dark:bg-zinc-700 rounded p-2 font-mono text-xs">
+                            {treeAnalysis.nodes
+                              .sort((a, b) => a.depth - b.depth || a.value - b.value)
+                              .map(node => (
+                                <div key={node.value} className="flex justify-between py-1">
+                                  <span>
+                                    {'  '.repeat(node.depth)}
+                                    {node.value}
+                                    {node.isLeaf ? ' (leaf)' : ''}
+                                  </span>
+                                  <span className="text-gray-500 text-xs">
+                                    d:{node.depth} s:{node.subtreeSize}
+                                  </span>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Animation Hints */}
+                      {currentState.animationHints && currentState.animationHints.length > 0 && (
+                        <div>
+                          <span className="text-gray-600 dark:text-gray-400 text-xs">Animation Hints:</span>
+                          <div className="mt-1 max-h-24 overflow-y-auto bg-gray-50 dark:bg-zinc-700 rounded p-2 font-mono text-xs">
+                            {currentState.animationHints.map((hint: any, index: number) => (
+                              <div key={index} className="mb-1">
+                                <span className="text-blue-600">{hint.type}</span>
+                                {hint.metadata && (
+                                  <div className="ml-2 text-gray-500 text-xs">
+                                    {JSON.stringify(hint.metadata)}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 italic text-sm">No current state</div>
+                  )}
+                </div>
+
+                {/* Raw JSON */}
+                <div>
+                  <h4 className="font-medium text-sm mb-2 text-gray-800 dark:text-gray-200">Raw JSON</h4>
+                  <div className="bg-gray-50 dark:bg-zinc-700 rounded p-3 max-h-48 overflow-y-auto">
+                    <pre className="text-xs font-mono text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                      {JSON.stringify(cleanStateForJson(currentState), null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Operations Tab */}
+            {activeTab === 'operations' && (
+              <div className="p-4">
+                <h4 className="font-medium text-sm mb-3 text-gray-800 dark:text-gray-200">
+                  Operation History ({operationHistory.length} operations)
+                </h4>
+                {operationHistory.length > 0 ? (
+                  <div className="space-y-2">
+                    {operationHistory.map((group, index) => (
+                      <div key={group.operation.id} className="border border-gray-200 dark:border-zinc-600 rounded">
+                        <button
+                          onClick={() => toggleOperation(index)}
+                          className={`w-full flex items-center gap-2 p-3 text-left hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors ${
+                            index === currentOperationIndex ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                          }`}
+                        >
+                          {expandedOperations.has(index) ? 
+                            <ChevronDown size={14} /> : 
+                            <ChevronRight size={14} />
+                          }
+                          <div className="flex-1">
+                            <div className="font-mono text-xs">
+                              {group.operation.type}
+                              {group.operation.params?.value !== undefined && ` (${group.operation.params.value})`}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {formatTimestamp(group.operation.timestamp)} • {group.states.length} steps
+                            </div>
+                          </div>
+                          {index === currentOperationIndex && (
+                            <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
+                              current
+                            </span>
+                          )}
+                        </button>
+                        
+                        {expandedOperations.has(index) && (
+                          <div className="border-t border-gray-200 dark:border-zinc-600 bg-gray-50 dark:bg-zinc-700 p-3">
+                            <div className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                              <div>ID: {group.operation.id}</div>
+                              <div>Description: {group.operation.description}</div>
+                            </div>
+                            
+                            <div className="space-y-1">
+                              <span className="text-xs font-medium">Steps:</span>
+                              {group.states.map((state, stepIndex) => (
+                                <div 
+                                  key={stepIndex}
+                                  className={`text-xs p-2 rounded font-mono ${
+                                    index === currentOperationIndex && stepIndex === currentAnimationIndex
+                                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200'
+                                      : 'bg-white dark:bg-zinc-600'
+                                  }`}
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <span>Step {stepIndex + 1}: {state.name || 'Unnamed'}</span>
+                                    <span className="text-gray-500">({state.nodeCount} nodes)</span>
+                                  </div>
+                                  {state.animationHints && state.animationHints.length > 0 && (
+                                    <div className="mt-1 text-gray-500 text-xs">
+                                      Hints: {state.animationHints.map((h: any) => h.type).join(', ')}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-gray-500 italic text-sm">No operations performed</div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
     </div>
   );
-};
-
-// Helper functions for tree analysis
-function countNodes(node: BinaryTreeNode): number {
-  if (!node) return 0;
-  return 1 + countNodes(node.left!) + countNodes(node.right!);
 }
-
-function getMaxDepth(node: BinaryTreeNode): number {
-  if (!node) return 0;
-  return 1 + Math.max(
-    node.left ? getMaxDepth(node.left) : 0,
-    node.right ? getMaxDepth(node.right) : 0
-  );
-}
-
-function isTreeBalanced(node: BinaryTreeNode): boolean {
-  if (!node) return true;
-  
-  const leftDepth = node.left ? getMaxDepth(node.left) : 0;
-  const rightDepth = node.right ? getMaxDepth(node.right) : 0;
-  
-  return (
-    Math.abs(leftDepth - rightDepth) <= 1 &&
-    (!node.left || isTreeBalanced(node.left)) &&
-    (!node.right || isTreeBalanced(node.right))
-  );
-}
-
-export default DebugPanel;

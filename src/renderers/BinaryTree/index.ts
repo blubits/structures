@@ -9,10 +9,7 @@
 // Core types
 export * from './types';
 
-// BST Operation Controller
-export { BSTOperationController } from './BSTOperationController';
-
-// Algorithms
+// Generic algorithms (shared across all binary tree types)
 export * from './algorithms';
 
 // Examples and validation
@@ -21,12 +18,8 @@ export * from './examples';
 // Configuration
 export * from './config';
 
-// Components
+// Generic Binary Tree Components
 export { BinaryTreeVisualizer } from './components/BinaryTreeVisualizer';
-export { BSTOperationsMenu } from './components/BSTOperationsMenu';
-export { BSTOperationControls } from './components/BSTOperationControls';
 
-// Provider
-export { BSTProvider, useBST } from './BSTProvider';
-// export { createBSTProvider } from './provider';
-// export * from './components';
+// BST-specific exports (re-exported from BST subdirectory)
+export * from './BST';

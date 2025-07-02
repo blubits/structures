@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Popover, PopoverTrigger, PopoverContent } from "../../../components/ui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "../../../../components/ui/popover";
 import { 
   Plus, 
   Search, 
@@ -28,13 +28,13 @@ export function BSTOperationsMenu({
   const [isOpen, setIsOpen] = useState(false);
 
   const handleInsert = () => {
-    controller.insert(insertValue);
+    controller.insertWithStepping(insertValue);
     setInsertValue(Math.floor(Math.random() * 50) + 1);
     setIsOpen(false);
   };
 
   const handleSearch = () => {
-    controller.search(searchValue);
+    controller.searchWithStepping(searchValue);
     setSearchValue(Math.floor(Math.random() * 50) + 1);
     setIsOpen(false);
   };
@@ -46,12 +46,12 @@ export function BSTOperationsMenu({
   };
 
   const handleFindMin = () => {
-    controller.findMin();
+    controller.findMinWithStepping();
     setIsOpen(false);
   };
 
   const handleFindMax = () => {
-    controller.findMax();
+    controller.findMaxWithStepping();
     setIsOpen(false);
   };
 

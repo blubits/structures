@@ -221,8 +221,8 @@ export class OperationHistoryController<TState extends DataStructureState = Data
     const currentOperation = this.operationHistory[currentOperationIndex];
     const maxIndex = currentOperation.states.length - 1;
 
-    if (currentAnimationIndex >= maxIndex - 1) {
-      // Already at or past the final state
+    if (currentAnimationIndex >= maxIndex) {
+      // Already at the final state
       return null;
     }
 
@@ -268,6 +268,37 @@ export class OperationHistoryController<TState extends DataStructureState = Data
   }
 
   /**
+   * Starts stepping through the current (most recent) operation from the beginning.
+   * Sets the visualization state to the first animation state and enables animation mode.
+   * 
+   * @returns The first animation state, or null if no operations exist
+   */
+  startSteppingThroughCurrentOperation(): TState | null {
+    const { currentOperationIndex } = this.state;
+    
+    if (currentOperationIndex === -1) {
+      return null; // No operations in history
+    }
+
+    const currentOperation = this.operationHistory[currentOperationIndex];
+    if (currentOperation.states.length === 0) {
+      return null; // Operation has no states
+    }
+
+    const firstState = currentOperation.states[0];
+    const maxIndex = currentOperation.states.length - 1;
+
+    this.setState(prev => ({
+      ...prev,
+      currentVisualizationState: firstState,
+      isAnimating: maxIndex > 0, // We're animating if there are multiple states
+      currentAnimationIndex: 0,
+    }));
+
+    return firstState;
+  }
+
+  /**
    * Gets the current final state (SSOT).
    */
   getCurrentState(): TState | null {
@@ -305,7 +336,7 @@ export class OperationHistoryController<TState extends DataStructureState = Data
     }
 
     const currentOperation = this.operationHistory[currentOperationIndex];
-    return currentAnimationIndex < currentOperation.states.length - 2;
+    return currentAnimationIndex < currentOperation.states.length - 1;
   }
 
   /**

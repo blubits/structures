@@ -11,6 +11,7 @@ import {
   type BinaryTree
 } from "../renderers/BinaryTree";
 import { HistoryMenu, type HistoryOperation } from "../components/HistoryMenu";
+import { DebugPanel } from "../components/DebugPanel";
 import { 
   Plus, 
   Search, 
@@ -178,6 +179,17 @@ function BSTPageContent() {
         animationSpeed={animationSpeed}
         onSpeedChange={setAnimationSpeed}
       />
+
+      {/* Debug panel */}
+      {import.meta.env.DEV && (
+        <DebugPanel
+          currentState={currentState}
+          operationHistory={controller.getHistory()}
+          currentOperationIndex={controller.getCurrentOperationIndex()}
+          currentAnimationIndex={controller.getCurrentAnimationIndex()}
+          isAnimating={controller.isAnimating()}
+        />
+      )}
 
       {/* History menu */}
       <HistoryMenu

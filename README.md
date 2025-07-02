@@ -1,33 +1,60 @@
 # Structures
 
-An interactive web application for visualizing and learning about data structures and algorithms, built in React.
+An interactive web application for visualizing and learning about data structures and algorithms, built with React.
 
 ## Stack
 
-This project uses React v19 in TypeScript. TanStack Router is used for routing. Tailwind is used for styling and Motion is used for animation.
+This project uses:
+- **React v19** with TypeScript for the UI
+- **TanStack Router** for routing
+- **Tailwind CSS** for styling  
+- **Motion** for animations
+- **D3** for data structure visualization
+- **Vite** for build tooling
 
-The core data structure visualization is powered by D3.
+## Getting Started
 
-### Features
+```bash
+npm install
+npm run dev  # Start development server on port 3000
+npm run build  # Build for production
+npm run test  # Run tests
+```
 
-## Data structures supported
+## Features
 
-- [ ] BST
-  - [x] Insert
-  - [x] Search
-  - [ ] Remove
-  - [ ] Pred/succ
-  - [x] Min/max
-- [ ] AVL tree
+### Data Structures Supported
+
+#### Binary Search Tree (BST)
+- [x] Insert operation with step-by-step visualization
+- [x] Search operation with traversal highlighting  
+- [x] Find minimum/maximum values
+- [ ] Delete operation (planned)
+- [ ] Predecessor/successor operations (planned)
+
+#### Planned Data Structures
+- [ ] AVL Tree (self-balancing)
   - [ ] Tree rotations
-  - [ ] Insert
-  - [ ] Search
-  - [ ] Remove
-  - [ ] Pred/succ
-  - [ ] Min/max
-- [ ] 
+  - [ ] Insert with balancing
+  - [ ] Delete with balancing
+- [ ] Red-Black Tree
+- [ ] Heap (Min/Max)
+- [ ] Trie (Prefix Tree)
 
-## Operations TODO
+## Architecture
+
+The project uses a modular architecture with:
+
+- **Core Framework**: Generic time-machine architecture for operation history and animation
+- **Renderers**: Data structure-specific visualization components  
+- **Components**: Reusable UI components
+- **Routes**: Page-level components using TanStack Router
+
+Each data structure has its own renderer with dedicated:
+- Operation controllers
+- Algorithm implementations  
+- Visualization components
+- Type definitions
 
 - [ ] Share as URL
 - [ ] Visualization as line tracing
