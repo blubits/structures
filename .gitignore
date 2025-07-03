@@ -6,3 +6,5 @@ dist-ssr
 count.txt
 .env
 TANSTACK.md
+docs
+src/routes/bst-minimal.tsx

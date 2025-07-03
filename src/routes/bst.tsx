@@ -66,7 +66,7 @@ function BSTPage() {
  * BST page content that has access to the BST context
  */
 function BSTPageContent() {
-  const { controller, currentState, isExecuting, animationSpeed, setAnimationSpeed, loadExample } = useBST();
+  const { controller, currentState, isExecuting, animationSpeed, setAnimationSpeed } = useBST();
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedOperationIndex, setSelectedOperationIndex] = useState(-1);
 
@@ -167,7 +167,6 @@ function BSTPageContent() {
       <BSTOperationsMenu
         controller={controller}
         isExecuting={isExecuting}
-        onLoadExample={loadExample}
       />
 
       {/* Operation controls */}

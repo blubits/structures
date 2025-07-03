@@ -9,9 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as BstMinimalRouteImport } from './routes/bst-minimal'
 import { Route as BstRouteImport } from './routes/bst'
 import { Route as IndexRouteImport } from './routes/index'
 
+const BstMinimalRoute = BstMinimalRouteImport.update({
+  id: '/bst-minimal',
+  path: '/bst-minimal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BstRoute = BstRouteImport.update({
   id: '/bst',
   path: '/bst',
@@ -26,31 +32,42 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/bst': typeof BstRoute
+  '/bst-minimal': typeof BstMinimalRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/bst': typeof BstRoute
+  '/bst-minimal': typeof BstMinimalRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/bst': typeof BstRoute
+  '/bst-minimal': typeof BstMinimalRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/bst'
+  fullPaths: '/' | '/bst' | '/bst-minimal'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/bst'
-  id: '__root__' | '/' | '/bst'
+  to: '/' | '/bst' | '/bst-minimal'
+  id: '__root__' | '/' | '/bst' | '/bst-minimal'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BstRoute: typeof BstRoute
+  BstMinimalRoute: typeof BstMinimalRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/bst-minimal': {
+      id: '/bst-minimal'
+      path: '/bst-minimal'
+      fullPath: '/bst-minimal'
+      preLoaderRoute: typeof BstMinimalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/bst': {
       id: '/bst'
       path: '/bst'
@@ -71,6 +88,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BstRoute: BstRoute,
+  BstMinimalRoute: BstMinimalRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

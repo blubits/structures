@@ -1,5 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
-import { useHistory } from '../../../lib/core/hooks/useHistory';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { BSTOperationController } from './BSTOperationController';
 import { createBinaryTree } from '../types';
@@ -18,7 +17,6 @@ interface BSTContextValue {
   isExecuting: boolean;
   animationSpeed: 'slow' | 'normal' | 'fast';
   setAnimationSpeed: (speed: 'slow' | 'normal' | 'fast') => void;
-  loadExample: (type: 'search' | 'insert' | 'delete') => void;
 }
 
 const BSTContext = createContext<BSTContextValue | null>(null);
@@ -56,9 +54,11 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
     controller.getCurrentVisualizationState() || createBinaryTree(null, "Empty BST")
   );
 
-  // Animation and execution state
-  const [isExecuting, setIsExecuting] = useState(false);
+  // Animation state
   const [animationSpeed, setAnimationSpeed] = useState<'slow' | 'normal' | 'fast'>('normal');
+  
+  // Execution state - currently always false since loadExample was removed
+  const isExecuting = false;
 
   // Subscribe to controller state changes
   useEffect(() => {
@@ -81,62 +81,12 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
     return unsubscribe;
   }, [controller]);
 
-  // Load predefined examples
-  const loadExample = useCallback((type: 'search' | 'insert' | 'delete') => {
-    setIsExecuting(true);
-    
-    // Simple example implementations for demonstration
-    try {
-      switch (type) {
-        case 'insert': {
-          // Load a tree with some values for insertion demo
-          controller.clear();
-          controller.insert(10);
-          controller.insert(5);
-          controller.insert(15);
-          controller.insert(3);
-          controller.insert(7);
-          break;
-        }
-        
-        case 'search': {
-          // Load a balanced tree for search demo
-          controller.clear();
-          controller.insert(8);
-          controller.insert(4);
-          controller.insert(12);
-          controller.insert(2);
-          controller.insert(6);
-          controller.insert(10);
-          controller.insert(14);
-          break;
-        }
-        
-        case 'delete': {
-          // Load a tree suitable for deletion demo
-          controller.clear();
-          controller.insert(20);
-          controller.insert(10);
-          controller.insert(30);
-          controller.insert(5);
-          controller.insert(15);
-          controller.insert(25);
-          controller.insert(35);
-          break;
-        }
-      }
-    } finally {
-      setIsExecuting(false);
-    }
-  }, [controller]);
-
   const contextValue: BSTContextValue = {
     controller,
     currentState,
     isExecuting,
     animationSpeed,
     setAnimationSpeed,
-    loadExample,
   };
 
   return (

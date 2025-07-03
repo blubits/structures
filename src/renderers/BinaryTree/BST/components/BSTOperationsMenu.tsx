@@ -6,7 +6,6 @@ import {
   ArrowDown, 
   ArrowUp,
   Trash2,
-  BookOpen,
   Menu
 } from "lucide-react";
 import type { BSTOperationController } from "../BSTOperationController";
@@ -14,13 +13,11 @@ import type { BSTOperationController } from "../BSTOperationController";
 interface BSTOperationsMenuProps {
   controller: BSTOperationController;
   isExecuting: boolean;
-  onLoadExample: (type: 'search' | 'insert' | 'delete') => void;
 }
 
 export function BSTOperationsMenu({
   controller,
-  isExecuting,
-  onLoadExample
+  isExecuting
 }: BSTOperationsMenuProps) {
   const [insertValue, setInsertValue] = useState(() => Math.floor(Math.random() * 50) + 1);
   const [searchValue, setSearchValue] = useState(() => Math.floor(Math.random() * 50) + 1);
@@ -189,48 +186,6 @@ export function BSTOperationsMenu({
                 <span className="flex-1 text-sm font-medium text-gray-800 dark:text-gray-200">Find Maximum</span>
               </div>
 
-              {/* Examples Section */}
-              <div className="border-t border-gray-200 dark:border-zinc-600 pt-3 mt-3">
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-2">
-                  <BookOpen className="w-4 h-4" />
-                  Load Example
-                </div>
-                <div className="grid grid-cols-3 gap-1">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onLoadExample('insert');
-                      setIsOpen(false);
-                    }}
-                    disabled={isExecuting}
-                    className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Insert
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onLoadExample('search');
-                      setIsOpen(false);
-                    }}
-                    disabled={isExecuting}
-                    className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Search
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onLoadExample('delete');
-                      setIsOpen(false);
-                    }}
-                    disabled={isExecuting}
-                    className="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         </PopoverContent>

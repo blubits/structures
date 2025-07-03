@@ -305,17 +305,6 @@ export class BSTOperationController extends OperationController<BinaryTree> {
   }
 
   /**
-   * Loads a predefined BST example.
-   * 
-   * @param exampleName - Name of the example to load
-   * @returns Result containing the loaded tree state
-   */
-  loadExample(exampleName: string) {
-    // TODO: Implement example loading from examples module
-    throw new Error(`Example loading not yet implemented for: ${exampleName}`);
-  }
-
-  /**
    * Clears the BST (removes all nodes).
    * 
    * @returns Result containing the empty tree state

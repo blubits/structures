@@ -12,9 +12,6 @@ export * from './types';
 // Generic algorithms (shared across all binary tree types)
 export * from './algorithms';
 
-// Examples and validation
-export * from './examples';
-
 // Configuration
 export * from './config';
 
