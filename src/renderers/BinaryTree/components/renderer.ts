@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 import { processBinaryTreeAnimations } from './animations';
 import type { BinaryTreeNode } from '../types';
 import type { AnimationHint } from '../../../lib/core/types';
+import { BINARY_TREE_COLORS } from '../config.colors';
 
 /**
  * Visual state interface for the binary tree renderer
@@ -29,36 +30,7 @@ const CONFIG = {
     maxScale: 4,
     initialScaleFactor: 1.5
   },
-  colors: {
-    light: {
-      node: {
-        default: '#ffffff',
-        active: '#3b82f6',
-        visited: '#10b981',
-        border: '#e5e7eb',
-        text: '#374151'
-      },
-      link: {
-        default: '#9ca3af',
-        active: '#3b82f6',
-        visited: '#10b981'
-      }
-    },
-    dark: {
-      node: {
-        default: '#ffffff',
-        active: '#3b82f6',
-        visited: '#10b981',
-        border: '#ffffff',
-        text: '#000000'
-      },
-      link: {
-        default: '#ffffff',
-        active: '#3b82f6',
-        visited: '#10b981'
-      }
-    }
-  }
+  colors: BINARY_TREE_COLORS
 };
 
 /**
@@ -349,7 +321,10 @@ export function renderBinaryTree(
         nodeGroup.append('circle')
           .attr('r', CONFIG.nodeRadius)
           .attr('fill', (d: any) => getNodeFillColor((d as NodeData).state, colors))
-          .attr('stroke', colors.node.border)
+          .attr('stroke', (d: any) => {
+            const state = (d as NodeData).state as 'default' | 'active' | 'visited';
+            return colors.node.border[state] || colors.node.border.default;
+          })
           .attr('stroke-width', 2)
           .style('opacity', 1);
 

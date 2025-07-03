@@ -14,6 +14,7 @@ import type {
 } from '../../../lib/core/AnimationController';
 import type { AnimationHint } from '../../../lib/core/types';
 import * as d3 from 'd3';
+import { BINARY_TREE_COLORS } from '../config.colors';
 
 // =============================================================================
 // BINARY TREE ANIMATION FUNCTIONS
@@ -62,12 +63,13 @@ const traverseDownAnimation = (context: GenericAnimationContext): void => {
   linksGroup.selectAll('[class*="traveling-dot-"]').remove();
 
   // Create the traveling dot (similar to the original forwardTraverse)
+  const theme = 'light'; // Use light theme by default, or pass as param if needed
   const dot = linksGroup
     .append('circle')
     .attr('class', dotClass)
     .attr('r', 4)
-    .attr('fill', '#3b82f6') // Blue color for the traveling dot
-    .attr('stroke', '#1d4ed8')
+    .attr('fill', BINARY_TREE_COLORS[theme].node.active)
+    .attr('stroke', BINARY_TREE_COLORS[theme].node.border.active)
     .attr('stroke-width', 2)
     .attr('opacity', 0)
     .attr('cx', x1)
