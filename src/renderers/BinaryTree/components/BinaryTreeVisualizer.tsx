@@ -101,17 +101,18 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
     prevVisualStateRef.current = visualState;
     
     try {
-      if (!isInitialized.current) {
+      const isFirstRender = !isInitialized.current;
+      if (isFirstRender) {
         if (import.meta.env.DEV) {
           console.log('🖼️ BinaryTreeVisualizer: First render, initializing...');
         }
-        renderBinaryTree(svgRef.current, containerRef.current, visualState);
+        renderBinaryTree(svgRef.current, containerRef.current, visualState, true);
         isInitialized.current = true;
       } else {
         if (import.meta.env.DEV) {
           console.log('🖼️ BinaryTreeVisualizer: Re-render update...');
         }
-        renderBinaryTree(svgRef.current, containerRef.current, visualState);
+        renderBinaryTree(svgRef.current, containerRef.current, visualState, false);
       }
     } catch (error) {
       console.error('Error rendering binary tree:', error);
@@ -124,7 +125,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
 
     const resizeObserver = new ResizeObserver(() => {
       if (isInitialized.current && svgRef.current && containerRef.current) {
-        renderBinaryTree(svgRef.current, containerRef.current, visualState);
+        renderBinaryTree(svgRef.current, containerRef.current, visualState, false);
       }
     });
 

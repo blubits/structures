@@ -128,7 +128,8 @@ let isZoomInitialized = false;
 export function renderBinaryTree(
   svgElement: SVGSVGElement, 
   containerElement: HTMLElement, 
-  visualState: BinaryTreeVisualState
+  visualState: BinaryTreeVisualState,
+  isFirstRender: boolean = false
 ): void {
   if (import.meta.env.DEV) {
     console.log('🌳 renderBinaryTree: Function called', {
@@ -287,7 +288,7 @@ export function renderBinaryTree(
   }
 
   // Get animation duration for transitions
-  const animationDuration = getAnimationDuration(visualState.animationSpeed);
+  const animationDuration = isFirstRender ? 0 : getAnimationDuration(visualState.animationSpeed);
 
   // Render links with D3 join pattern
   linkGroup.selectAll('line')
@@ -296,12 +297,12 @@ export function renderBinaryTree(
       enter => enter.append('line')
         .attr('x1', (d: any) => (d as LinkData).source.x)
         .attr('y1', (d: any) => (d as LinkData).source.y)
-        .attr('x2', (d: any) => (d as LinkData).source.x) // Start from source for animation
-        .attr('y2', (d: any) => (d as LinkData).source.y)
+        .attr('x2', isFirstRender ? (d: any) => (d as LinkData).target.x : (d: any) => (d as LinkData).source.x) // Skip animation on first render
+        .attr('y2', isFirstRender ? (d: any) => (d as LinkData).target.y : (d: any) => (d as LinkData).source.y)
         .attr('stroke', colors.link.default)
         .attr('stroke-width', 2)
-        .attr('opacity', 0)
-        .call(enter => enter.transition()
+        .attr('opacity', isFirstRender ? 0.8 : 0)
+        .call(enter => isFirstRender ? enter : enter.transition()
           .duration(animationDuration)
           .attr('x2', (d: any) => (d as LinkData).target.x)
           .attr('y2', (d: any) => (d as LinkData).target.y)
@@ -366,16 +367,17 @@ export function renderBinaryTree(
       update => {
         // Update positions and states with smooth transitions
         const updatedNodes = update
-          .call(update => update.transition()
+          .call(update => isFirstRender ? update.attr('transform', (d: any) => `translate(${(d as NodeData).x}, ${(d as NodeData).y})`) : update.transition()
             .duration(animationDuration / 2)
             .attr('transform', (d: any) => `translate(${(d as NodeData).x}, ${(d as NodeData).y})`)
           );
 
         // Update circle colors based on state changes
         updatedNodes.select('circle')
-          .transition()
-          .duration(animationDuration / 2)
-          .attr('fill', (d: any) => getNodeFillColor((d as NodeData).state, colors));
+          .call(circles => isFirstRender ? circles.attr('fill', (d: any) => getNodeFillColor((d as NodeData).state, colors)) : circles.transition()
+            .duration(animationDuration / 2)
+            .attr('fill', (d: any) => getNodeFillColor((d as NodeData).state, colors))
+          );
 
         return updatedNodes;
       },
@@ -430,9 +432,11 @@ export function renderBinaryTree(
       return null;
     };
 
-    // Process all animations through the generic system
+    const animationHints = visualState.animationHints;
+
+    // Process all animations through the generic system immediately
     processBinaryTreeAnimations(
-      visualState.animationHints,
+      animationHints,
       elementProvider
     );
   }
