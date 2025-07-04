@@ -299,19 +299,20 @@ export function renderBinaryTree(
           .remove()
         )
     )
-    // Execute animations using the new generic system
+    // Set data attributes for animations
     .each(function(d: any) {
       const linkData = d as LinkData;
-      if (visualState.animationHints && visualState.animationHints.length > 0) {
-        // Store element reference for the link
-        const linkElement = this as Element;
-        linkElement.setAttribute('data-link-id', linkData.id);
-      }
+      const linkElement = this as Element;
+      
+      // Store element reference for the link
+      linkElement.setAttribute('data-link-id', linkData.id);
+      linkElement.setAttribute('data-source-value', linkData.sourceValue.toString());
+      linkElement.setAttribute('data-target-value', linkData.targetValue.toString());
     });
 
-  // Render nodes with D3 join pattern
+  // Render nodes with D3 join pattern using node IDs for better reconciliation
   const nodeElements = nodeGroup.selectAll('g.node')
-    .data(nodes, (d: any) => (d as NodeData).value)
+    .data(nodes, (d: any) => (d as NodeData).id || (d as NodeData).value) // Use ID first, fallback to value
     .join(
       enter => {
         const nodeGroup = enter.append('g')
@@ -368,13 +369,15 @@ export function renderBinaryTree(
           .remove()
         )
     )
-    // Execute animations using the new generic system
+    // Set data attributes for animations
     .each(function(d: any) {
       const nodeData = d as NodeData;
-      if (visualState.animationHints && visualState.animationHints.length > 0) {
-        // Store element reference for the node
-        const nodeElement = this as Element;
-        nodeElement.setAttribute('data-node-value', nodeData.value.toString());
+      const nodeElement = this as Element;
+      
+      // Set both the node value and ID for animation targeting
+      nodeElement.setAttribute('data-node-value', nodeData.value.toString());
+      if (nodeData.id) {
+        nodeElement.setAttribute('data-node-id', nodeData.id);
       }
     });
 
@@ -395,16 +398,74 @@ export function renderBinaryTree(
 
   // Handle all animations using the new generic system
   if (visualState.animationHints && visualState.animationHints.length > 0) {
-    // Create element provider function
+    if (import.meta.env.DEV) {
+      console.log('🎬 Processing animations with hints:', {
+        hintsCount: visualState.animationHints.length,
+        hints: visualState.animationHints.map(h => ({ type: h.type, metadata: h.metadata }))
+      });
+    }
+
+    // Create element provider function that handles both old and new ID formats
     const elementProvider = (elementId: string): Element | null => {
-      // Check if it's a link ID
-      if (elementId.includes('-')) {
-        const linkElement = mainGroup.select(`[data-link-id="${elementId}"]`).node();
-        if (linkElement) return linkElement as Element;
-      } else {
-        // Check if it's a node value
-        const nodeElement = mainGroup.select(`[data-node-value="${elementId}"]`).node();
-        if (nodeElement) return nodeElement as Element;
+      if (import.meta.env.DEV) {
+        console.log('🎬 Element provider called with ID:', elementId);
+      }
+
+      // Check if it's a link ID (format: "sourceValue-targetValue" for animations)
+      if (elementId.includes('-') && !elementId.includes('node-')) {
+        // Legacy format: "8-3" - find link by source and target values
+        const [sourceValue, targetValue] = elementId.split('-').map(Number);
+        if (!isNaN(sourceValue) && !isNaN(targetValue)) {
+          // Find the link element by checking all links for matching source/target values
+          const linkElements = mainGroup.selectAll(`line[data-link-id]`).nodes();
+          const linkElement = linkElements.find(node => {
+            const element = node as Element;
+            const linkId = element.getAttribute('data-link-id');
+            if (linkId) {
+              // Parse the link ID to extract source and target values
+              const linkData = links.find(l => l.id === linkId);
+              if (linkData && linkData.sourceValue === sourceValue && linkData.targetValue === targetValue) {
+                return true;
+              }
+            }
+            return false;
+          });
+          
+          if (linkElement) {
+            if (import.meta.env.DEV) {
+              console.log('🎬 Found link element by values:', { sourceValue, targetValue, linkElement });
+            }
+            return linkElement as Element;
+          }
+        }
+      }
+      
+      // Check if it's a node ID (format: "node-..." or just a number)
+      if (elementId.startsWith('node-') || !isNaN(Number(elementId))) {
+        if (elementId.startsWith('node-')) {
+          // Find node by ID attribute
+          const nodeElement = mainGroup.select(`[data-node-id="${elementId}"]`).node();
+          if (nodeElement) {
+            if (import.meta.env.DEV) {
+              console.log('🎬 Found node element by ID:', { elementId, nodeElement });
+            }
+            return nodeElement as Element;
+          }
+        } else {
+          // Numeric ID - treat as node value
+          const nodeValue = Number(elementId);
+          const nodeElement = mainGroup.select(`[data-node-value="${nodeValue}"]`).node();
+          if (nodeElement) {
+            if (import.meta.env.DEV) {
+              console.log('🎬 Found node element by value:', { nodeValue, nodeElement });
+            }
+            return nodeElement as Element;
+          }
+        }
+      }
+      
+      if (import.meta.env.DEV) {
+        console.warn('🎬 Element provider could not find element for ID:', elementId);
       }
       return null;
     };
@@ -516,6 +577,7 @@ type NodeData = {
   x: number;
   y: number;
   state: string;
+  id?: string; // Include node ID for better reconciliation
 };
 
 type LinkData = {
@@ -527,7 +589,8 @@ type LinkData = {
 };
 
 /**
- * Collect all nodes and links for rendering
+ * Collect all nodes and links for rendering with stable IDs for reconciliation.
+ * Links are handled separately from nodes for efficient D3 join operations.
  */
 function collectNodesAndLinks(
   tree: BinaryTreeNode,
@@ -549,17 +612,19 @@ function collectNodesAndLinks(
       value: node.value,
       x: pos.x,
       y: pos.y,
-      state: nodeState
+      state: nodeState,
+      id: node.id // Use the stable ID from reconciliation
     });
 
-    // Add links to children with unique IDs
+    // Add links to children with stable IDs based on node relationships
     if (node.left) {
       const childPos = positions.get(node.left.value);
       if (childPos) {
         links.push({
           source: { x: pos.x, y: pos.y },
           target: { x: childPos.x, y: childPos.y },
-          id: `${node.value}-${node.left.value}`,
+          // Use node IDs for stable link identity (important for reconciliation)
+          id: `${node.id}-${node.left.id}`,
           sourceValue: node.value,
           targetValue: node.left.value
         });
@@ -573,7 +638,8 @@ function collectNodesAndLinks(
         links.push({
           source: { x: pos.x, y: pos.y },
           target: { x: childPos.x, y: childPos.y },
-          id: `${node.value}-${node.right.value}`,
+          // Use node IDs for stable link identity (important for reconciliation)
+          id: `${node.id}-${node.right.id}`,
           sourceValue: node.value,
           targetValue: node.right.value
         });

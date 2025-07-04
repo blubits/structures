@@ -3,6 +3,7 @@ import { useTheme } from "../../../components/ThemeProvider";
 import type { BinaryTree } from "../types";
 import { renderBinaryTree } from "./renderer.js";
 import { registerBinaryTreeAnimations } from "./animations.js";
+import { arrayEqual } from "../types";
 
 // Initialize animations once when the module loads
 let animationsInitialized = false;
@@ -96,12 +97,12 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
 
     if (!svgRef.current || !containerRef.current) return;
     
-    // Skip if the visual state hasn't actually changed (deep comparison for content)
+    // Skip if the visual state hasn't actually changed (efficient comparison)
     if (prevVisualStateRef.current && 
         prevVisualStateRef.current.tree === visualState.tree &&
         prevVisualStateRef.current.theme === visualState.theme &&
         prevVisualStateRef.current.animationSpeed === visualState.animationSpeed &&
-        JSON.stringify(prevVisualStateRef.current.animationHints) === JSON.stringify(visualState.animationHints)) {
+        arrayEqual(prevVisualStateRef.current.animationHints, visualState.animationHints)) {
       if (import.meta.env.DEV) {
         console.log('🖼️ BinaryTreeVisualizer: Skipping render - no changes detected');
       }
