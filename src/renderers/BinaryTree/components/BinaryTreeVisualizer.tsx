@@ -10,11 +10,13 @@ let animationsInitialized = false;
 interface BinaryTreeVisualizerProps {
   state: BinaryTree;
   animationSpeed?: 'slow' | 'normal' | 'fast';
+  disableResize?: boolean; // Add prop to disable resize handling
 }
 
 export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
   state,
-  animationSpeed = 'normal'
+  animationSpeed = 'normal',
+  disableResize = true // Default to true since we now use CSS-based responsive design
 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -53,16 +55,23 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
         rootValue: state?.root?.value,
         nodeCount: state?.nodeCount,
         height: state?.height,
-        animationHintsCount: state?.animationHints?.length || 0
+        animationHintsCount: state?.animationHints?.length || 0,
+        stateObjectId: `state-${JSON.stringify(state?.name)}`
       });
     }
 
-    return {
+    const newVisualState = {
       tree: state.root,
       animationSpeed,
       theme: (prefersDarkMode ? 'dark' : 'light') as 'dark' | 'light',
       animationHints: state.animationHints // Only source of animation data
     };
+
+    if (import.meta.env.DEV) {
+      console.log('🎨 BinaryTreeVisualizer: New visual state created', newVisualState);
+    }
+
+    return newVisualState;
   }, [
     state.root, 
     state.name, 
@@ -80,7 +89,8 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
         renderCount: renderCount.current,
         hasSvgRef: !!svgRef.current,
         hasContainerRef: !!containerRef.current,
-        isInitialized: isInitialized.current
+        isInitialized: isInitialized.current,
+        stackTrace: new Error().stack?.split('\n').slice(1, 4) // First 3 stack frames
       });
     }
 
@@ -121,25 +131,77 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
 
   // Handle container resize
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || disableResize) return;
+
+    if (import.meta.env.DEV) {
+      console.log('🔍 BinaryTreeVisualizer: Setting up ResizeObserver');
+    }
+
+    let resizeTimeout: NodeJS.Timeout | null = null;
 
     const resizeObserver = new ResizeObserver(() => {
-      if (isInitialized.current && svgRef.current && containerRef.current) {
-        renderBinaryTree(svgRef.current, containerRef.current, visualState, false);
+      if (import.meta.env.DEV) {
+        console.log('🔍 BinaryTreeVisualizer: ResizeObserver callback triggered', {
+          isInitialized: isInitialized.current,
+          hasSvgRef: !!svgRef.current,
+          hasContainerRef: !!containerRef.current,
+          hasTimeout: !!resizeTimeout
+        });
       }
+      
+      // Clear any pending resize handling
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
+
+      // Debounce resize handling to prevent infinite loops
+      resizeTimeout = setTimeout(() => {
+        if (import.meta.env.DEV) {
+          console.log('🔍 BinaryTreeVisualizer: Executing debounced resize');
+        }
+        
+        if (isInitialized.current && svgRef.current && containerRef.current) {
+          // Temporarily disconnect the observer to prevent recursive calls
+          resizeObserver.disconnect();
+          
+          // Get the current visualState at the time of resize
+          const currentVisualState = {
+            tree: state.root,
+            animationSpeed,
+            theme: (prefersDarkMode ? 'dark' : 'light') as 'dark' | 'light',
+            animationHints: state.animationHints
+          };
+          
+          renderBinaryTree(svgRef.current, containerRef.current, currentVisualState, false);
+          
+          // Reconnect the observer after a brief delay
+          setTimeout(() => {
+            if (containerRef.current) {
+              resizeObserver.observe(containerRef.current);
+            }
+          }, 100);
+        }
+        resizeTimeout = null;
+      }, 50); // 50ms debounce
     });
 
     resizeObserver.observe(containerRef.current);
 
     return () => {
+      if (import.meta.env.DEV) {
+        console.log('🔍 BinaryTreeVisualizer: Disconnecting ResizeObserver');
+      }
+      if (resizeTimeout) {
+        clearTimeout(resizeTimeout);
+      }
       resizeObserver.disconnect();
     };
-  }, [visualState]);
+  }, []); // Remove visualState dependency to prevent infinite loop
 
   return (
     <div 
       ref={containerRef}
-      className="w-full h-full bg-white dark:bg-zinc-900 overflow-hidden relative cursor-grab active:cursor-grabbing"
+      className="w-full h-full bg-white dark:bg-zinc-900 overflow-hidden relative cursor-grab active:cursor-grabbing flex items-center justify-center"
       style={{ touchAction: 'none' }}
     >
       <svg
@@ -148,7 +210,9 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
         style={{ 
           overflow: 'visible',
           backgroundColor: 'transparent',
-          userSelect: 'none'
+          userSelect: 'none',
+          maxWidth: '100%',
+          maxHeight: '100%'
         }}
       />
       

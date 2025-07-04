@@ -110,7 +110,9 @@ export function renderBinaryTree(
       treeValue: visualState.tree?.value,
       theme: visualState.theme,
       animationSpeed: visualState.animationSpeed,
-      animationHintsCount: visualState.animationHints?.length || 0
+      animationHintsCount: visualState.animationHints?.length || 0,
+      isFirstRender,
+      stackTrace: new Error().stack?.split('\n').slice(1, 6) // First 5 stack frames
     });
   }
 
@@ -194,24 +196,23 @@ export function renderBinaryTree(
   const maxY = Math.max(...allPositions.map(p => p.y));
   
   const bounds = {
-    minX: minX - CONFIG.nodeRadius * 2,
-    maxX: maxX + CONFIG.nodeRadius * 2,
-    minY: minY - CONFIG.nodeRadius,
-    maxY: maxY + CONFIG.nodeRadius
+    minX: minX - CONFIG.nodeRadius * 6, // Increased padding
+    maxX: maxX + CONFIG.nodeRadius * 6,
+    minY: minY - CONFIG.nodeRadius * 4, // Increased padding
+    maxY: maxY + CONFIG.nodeRadius * 4
   };
   
   const contentWidth = bounds.maxX - bounds.minX;
   const contentHeight = bounds.maxY - bounds.minY;
-  
-  // Get container dimensions
-  const containerRect = containerElement.getBoundingClientRect();
-  const containerWidth = containerRect.width;
-  const containerHeight = containerRect.height;
 
-  // Set up SVG with proper dimensions
+  // Set up SVG with responsive dimensions
   const svg = d3.select(svgElement)
-    .attr('width', containerWidth)
-    .attr('height', containerHeight);
+    .attr('width', '100%')
+    .attr('height', '100%')
+    .attr('viewBox', `${bounds.minX} ${bounds.minY} ${contentWidth} ${contentHeight}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet')
+    .style('max-width', '100%')
+    .style('max-height', '100%');
 
   // Set up or get main group for zoom/pan
   let mainGroup = svg.select<SVGGElement>('g.main-group');
@@ -219,14 +220,15 @@ export function renderBinaryTree(
     mainGroup = svg.append('g').attr('class', 'main-group');
   }
 
-  // Initialize zoom behavior if needed
+  // Initialize zoom behavior if needed (simplified for responsive design)
   if (!zoomBehavior) {
-    initializeZoomBehavior(svg, mainGroup, contentWidth, contentHeight, containerWidth, containerHeight, bounds);
-  }
-
-  // Set initial zoom if not already initialized
-  if (!isZoomInitialized) {
-    setInitialZoom(svg, zoomBehavior!, contentWidth, contentHeight, containerWidth, containerHeight, bounds);
+    zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.1, 10])
+      .on('zoom', (event) => {
+        mainGroup.attr('transform', event.transform);
+      });
+    
+    svg.call(zoomBehavior);
     isZoomInitialized = true;
   }
 
