@@ -1,5 +1,13 @@
 import { useCallback, useState } from "react";
 import { ChevronDown, ChevronRight, Bug } from "lucide-react";
+import { 
+  MdSkipPrevious, 
+  MdSkipNext, 
+  MdPlayArrow, 
+  MdPause, 
+  MdReplay,
+  MdSpeed
+} from "react-icons/md";
 import { useBST } from "../BSTProvider";
 import type { BinaryTree } from "../../types";
 import { countNodes, normalizeBinaryTree } from "../../types";
@@ -13,19 +21,14 @@ interface BSTOperationControlsProps {
 }
 
 /**
- * Enhanced BST-specific operation controls following operation-controls.tsx design
+ * Enhanced BST-specific operation controls with media player-like interface
  * 
- * Phase 1.2 fixes implemented:
- * - Hide when no active operations occurring
- * - Display step counter "Step X of Y"
- * - Follow operation-controls.tsx design patterns
- * - Improved visibility and behavior
- * 
- * Phase 2.2 enhancements:
- * - Optional debug layer toggle
- * - Display triggered animations for current step
- * - Show animation hints and sequence information
- * - Debug information about current state transitions
+ * Features:
+ * - Media player-style controls with react-icons
+ * - Emphasized current step information
+ * - Deemphasized operation details
+ * - Clean, intuitive interface
+ * - Optional debug layer for development
  */
 export function BSTOperationControls({
   isPlaying,
@@ -84,89 +87,86 @@ export function BSTOperationControls({
 
   return (
     <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-30">
-      <div className="bg-black/80 backdrop-blur-sm text-white rounded-lg text-sm pointer-events-auto min-w-[400px] max-w-[600px]">
-        {/* Step Information Panel */}
-        <div className="px-4 py-3 border-b border-white/20">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-semibold text-base">
-              {operationTitle}
-            </span>
-            <span className="text-xs opacity-75">
-              Step {currentStepNumber} of {totalSteps}
-            </span>
-          </div>
-          
-          {/* Display current step title */}
-          <div className="text-sm mb-2">
-            {currentStepTitle}
-          </div>
-          
-          {/* Display operation value if available */}
-          {currentOperation.params?.value !== undefined && (
-            <div className="text-xs opacity-75">
-              Value: {currentOperation.params.value}
+      <div className="bg-black/90 backdrop-blur-sm text-white rounded-xl shadow-xl pointer-events-auto min-w-[500px] max-w-[700px]">
+        {/* Current Step Information - Emphasized */}
+        <div className="px-6 py-4">
+          <div className="flex items-start justify-between mb-3">
+            <div className="text-lg font-bold text-white text-left">
+              {currentStepTitle}
             </div>
-          )}
+            <div className="text-right">
+              <div className="text-sm opacity-75 mb-1">
+                {operationTitle}
+              </div>
+              <div className="text-xs opacity-60">
+                Step {currentStepNumber} of {totalSteps}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Control Buttons */}
-        <div className="px-4 py-3 flex items-center justify-center gap-3">
+        {/* Media Player Controls */}
+        <div className="px-6 py-4 flex items-center justify-center gap-4 border-t border-white/20">
+          {/* Previous Step */}
           <button
             onClick={handleStepBackward}
             disabled={!canStepBackward}
-            className="p-2 rounded-md bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-3 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95"
             title="Previous Step"
           >
-            ⏮️
+            <MdSkipPrevious size={24} />
           </button>
           
+          {/* Play/Pause */}
           <button
             onClick={onPlayPause}
-            className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-md transition-colors font-medium"
+            className="p-4 rounded-full bg-white hover:bg-white/90 text-black transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg"
             title={isPlaying ? "Pause Playback" : "Start Playback"}
           >
-            {isPlaying ? '⏸️ Pause' : '▶️ Play'}
+            {isPlaying ? <MdPause size={32} /> : <MdPlayArrow size={32} />}
           </button>
           
+          {/* Next Step */}
           <button
             onClick={handleStepForward}
             disabled={!canStepForward}
-            className="p-2 rounded-md bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-3 rounded-full bg-white/20 hover:bg-white/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 hover:scale-105 active:scale-95"
             title="Next Step"
           >
-            ⏭️
+            <MdSkipNext size={24} />
           </button>
           
+          {/* Restart */}
           <button
             onClick={handleRestart}
-            className="px-3 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-md transition-colors text-sm"
+            className="p-3 rounded-full bg-white/20 hover:bg-white/30 transition-all duration-200 hover:scale-105 active:scale-95 ml-4"
             title="Restart Operation"
           >
-            🔄 Restart
+            <MdReplay size={20} />
           </button>
 
-          {/* Speed control */}
+          {/* Speed Control */}
           <div className="flex items-center gap-2 ml-4 pl-4 border-l border-white/20">
-            <span className="text-xs opacity-75">Speed:</span>
+            <MdSpeed size={16} className="opacity-75" />
             <select
               value={animationSpeed}
               onChange={(e) => onSpeedChange(e.target.value as 'slow' | 'normal' | 'fast')}
-              className="px-2 py-1 bg-gray-700 border border-gray-600 rounded text-xs text-white"
+              className="px-3 py-1 bg-white/20 border border-white/20 rounded-full text-sm text-white backdrop-blur-sm"
             >
-              <option value="slow">Slow</option>
-              <option value="normal">Normal</option>
-              <option value="fast">Fast</option>
+              <option value="slow" className="text-black">Slow</option>
+              <option value="normal" className="text-black">Normal</option>
+              <option value="fast" className="text-black">Fast</option>
             </select>
           </div>
 
-          {/* Debug layer toggle */}
+          {/* Debug Toggle */}
           {import.meta.env.DEV && (
             <button
               onClick={() => setShowDebugLayer(!showDebugLayer)}
-              className={`p-2 rounded-md transition-colors ml-2 ${
+              className={`p-2 rounded-full transition-all duration-200 ml-2 ${
                 showDebugLayer 
-                  ? 'bg-blue-600 hover:bg-blue-500' 
-                  : 'bg-gray-600 hover:bg-gray-500'
+                  ? 'bg-blue-500 hover:bg-blue-400' 
+                  : 'bg-white/20 hover:bg-white/30'
               }`}
               title="Toggle Debug Layer"
             >
@@ -177,19 +177,19 @@ export function BSTOperationControls({
 
         {/* Debug Layer */}
         {showDebugLayer && import.meta.env.DEV && (
-          <div className="border-t border-white/20 bg-black/60">
+          <div className="border-t border-white/20 bg-black/60 rounded-b-xl">
             {/* Debug Header */}
-            <div className="px-4 py-2 flex items-center gap-2">
+            <div className="px-6 py-3 flex items-center gap-2">
               {showDebugLayer ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-              <span className="text-xs font-medium opacity-75">Debug Information</span>
+              <span className="text-sm font-medium opacity-75">Debug Information</span>
             </div>
 
             {/* Debug Content */}
-            <div className="px-4 pb-3 space-y-3 text-xs">
+            <div className="px-6 pb-4 space-y-4 text-xs">
               {/* Current Step Details */}
               <div>
-                <div className="font-medium mb-1 text-yellow-400">Current Step Details:</div>
-                <div className="bg-black/40 rounded p-2 font-mono">
+                <div className="font-medium mb-2 text-yellow-400">Current Step Details:</div>
+                <div className="bg-black/40 rounded-lg p-3 font-mono space-y-1">
                   <div>Operation Index: {historyController.getCurrentOperationIndex()}</div>
                   <div>Animation Index: {currentAnimationIndex}</div>
                   <div>Is Animating: {isAnimating ? 'Yes' : 'No'}</div>
@@ -201,8 +201,8 @@ export function BSTOperationControls({
               {/* Current State Animation Hints */}
               {currentOperationStates.length > 0 && currentAnimationIndex >= 0 && (
                 <div>
-                  <div className="font-medium mb-1 text-blue-400">Animation Hints for Current Step:</div>
-                  <div className="bg-black/40 rounded p-2 font-mono">
+                  <div className="font-medium mb-2 text-blue-400">Animation Hints for Current Step:</div>
+                  <div className="bg-black/40 rounded-lg p-3 font-mono">
                     {(() => {
                       const currentStepState = currentOperationStates[currentAnimationIndex];
                       if (currentStepState?.animationHints && currentStepState.animationHints.length > 0) {
@@ -229,19 +229,19 @@ export function BSTOperationControls({
 
               {/* State Transition Information */}
               <div>
-                <div className="font-medium mb-1 text-green-400">State Transition:</div>
-                <div className="bg-black/40 rounded p-2 font-mono">
+                <div className="font-medium mb-2 text-green-400">State Transition:</div>
+                <div className="bg-black/40 rounded-lg p-3 font-mono">
                   {currentOperationStates.length > 0 && currentAnimationIndex >= 0 ? (
                     <>
                       <div>Current State: {currentOperationStates[currentAnimationIndex]?.name || 'Unnamed'}</div>
                       <div>Node Count: {countNodes(normalizeBinaryTree(currentOperationStates[currentAnimationIndex]).root) || 0}</div>
                       {currentAnimationIndex > 0 && (
-                        <div className="mt-1 pt-1 border-t border-white/10">
+                        <div className="mt-2 pt-2 border-t border-white/10">
                           <div className="text-gray-400">Previous: {currentOperationStates[currentAnimationIndex - 1]?.name || 'Unnamed'}</div>
                         </div>
                       )}
                       {currentAnimationIndex < currentOperationStates.length - 1 && (
-                        <div className="mt-1 pt-1 border-t border-white/10">
+                        <div className="mt-2 pt-2 border-t border-white/10">
                           <div className="text-gray-400">Next: {currentOperationStates[currentAnimationIndex + 1]?.name || 'Unnamed'}</div>
                         </div>
                       )}
@@ -254,8 +254,8 @@ export function BSTOperationControls({
 
               {/* Operation Sequence */}
               <div>
-                <div className="font-medium mb-1 text-purple-400">Operation Sequence:</div>
-                <div className="bg-black/40 rounded p-2 font-mono max-h-32 overflow-y-auto">
+                <div className="font-medium mb-2 text-purple-400">Operation Sequence:</div>
+                <div className="bg-black/40 rounded-lg p-3 font-mono max-h-32 overflow-y-auto">
                   {currentOperationStates.map((state: any, index: number) => (
                     <div 
                       key={index} 
