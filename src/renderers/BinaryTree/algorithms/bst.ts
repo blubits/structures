@@ -1,43 +1,382 @@
-import type { BinaryTreeNode, BinaryTree, NormalizedBinaryTree } from '../types';
+import type { BinaryTreeNode, BinaryTree, NormalizedBinaryTree, BinaryTreeNodeSpec } from '../types';
+import type { AnimationHint } from '../../../lib/core/types';
 import { updateBinaryTreeNode, normalizeBinaryTree } from '../types';
 
 /**
- * BST Algorithm Implementations for the New Architecture
+ * BST Algorithm Implementations with Smart State Builder
  * 
- * These algorithms generate sequences of immutable tree states, where each state
- * represents one atomic step in the operation. Each step has embedded animation
- * hints for declarative visualization.
+ * This refactored version uses a BinaryTreeStateBuilder that automatically
+ * handles path tracking and state management, allowing algorithms to focus
+ * on BST logic rather than visualization details.
  * 
- * Key principles:
- * - One step = one atomic operation = one animation
- * - All states are immutable (create new instances)
- * - Animation hints embedded directly in tree state (not nodes)
- * - Educational step-by-step breakdown for learning
- * - Uses plain object specifications for easy tree creation
+ * Key improvements:
+ * - Algorithms mirror actual BST implementations (iterative with while loops)
+ * - No manual path management - handled automatically by builder
+ * - Clean, readable code focused on BST logic
+ * - Automatic state creation and animation hints
+ * - Educational value preserved through step-by-step visualization
  */
 
 /**
- * Create a NormalizedBinaryTree from a plain object specification
+ * Smart Binary Tree State Builder
+ * 
+ * This class tracks the current path through the tree automatically and provides
+ * high-level operations for BST algorithms. It handles all the complexity of
+ * path management, tree manipulation, and state creation.
  */
-function createBinaryTreeFromSpec(spec: BinaryTree): NormalizedBinaryTree {
-  return normalizeBinaryTree(spec);
-}
+class BinaryTreeStateBuilder {
+  private currentTree: NormalizedBinaryTree;
+  private states: NormalizedBinaryTree[] = [];
+  private currentPath: string[] = [];
 
-/**
- * Helper function to create a binary tree node spec
- */
-function createNodeSpec(
-  value: number,
-  left: any = null,
-  right: any = null,
-  state: 'default' | 'active' | 'visited' = 'default'
-): any {
-  return {
-    value,
-    left,
-    right,
-    state
-  };
+  constructor(initialTree: NormalizedBinaryTree) {
+    this.currentTree = initialTree;
+  }
+
+  /**
+   * Compare with the current node - sets it to active state and marks previous active node as visited
+   */
+  compareWith(value: number): this {
+    const currentNode = this.getCurrentNode();
+    if (!currentNode) return this;
+
+    // First, mark any previously active nodes as visited
+    if (this.currentTree.root) {
+      const treeWithVisitedActive = this.markActiveNodesAsVisited(this.currentTree.root);
+      this.currentTree = this.createTreeFromSpec({ root: treeWithVisitedActive });
+    }
+
+    // Then set the current node to active
+    const updatedNode = updateBinaryTreeNode(currentNode, { state: 'active' });
+    this.currentTree = this.updateTreeAtCurrentPath(updatedNode);
+    
+    this.states.push(this.createTreeFromSpec({
+      root: this.currentTree.root,
+      name: `Comparing ${value} with ${currentNode.value}`,
+    }));
+
+    return this;
+  }
+
+  /**
+   * Traverse to the left child
+   */
+  traverseLeft(): this {
+    const currentNode = this.getCurrentNode();
+    if (!currentNode) return this;
+
+    // Only add traverse state with animation if child exists
+    if (currentNode.left) {
+      const animationHints: AnimationHint[] = [{ 
+        type: 'traverse-down', 
+        metadata: { sourceValue: currentNode.value, targetValue: currentNode.left.value } 
+      }];
+
+      this.states.push(this.createTreeFromSpec({
+        root: this.currentTree.root,
+        name: `Going left`,
+        animationHints,
+      }));
+    }
+
+    // Update path to point to left child
+    this.currentPath.push('left');
+    
+    return this;
+  }
+
+  /**
+   * Traverse to the right child
+   */
+  traverseRight(): this {
+    const currentNode = this.getCurrentNode();
+    if (!currentNode) return this;
+
+    // Only add traverse state with animation if child exists
+    if (currentNode.right) {
+      const animationHints: AnimationHint[] = [{ 
+        type: 'traverse-down', 
+        metadata: { sourceValue: currentNode.value, targetValue: currentNode.right.value } 
+      }];
+
+      this.states.push(this.createTreeFromSpec({
+        root: this.currentTree.root,
+        name: `Going right`,
+        animationHints,
+      }));
+    }
+
+    // Update path to point to right child
+    this.currentPath.push('right');
+    
+    return this;
+  }
+
+  /**
+   * Insert a new node at the current path
+   */
+  insertHere(value: number): this {
+    const newNodeSpec: BinaryTreeNodeSpec = {
+      value,
+      left: null,
+      right: null,
+      state: 'active'
+    };
+
+    if (this.currentPath.length === 0) {
+      // Inserting at root
+      this.currentTree = this.createTreeFromSpec({
+        root: newNodeSpec,
+        name: `Inserting ${value} as root`,
+      });
+    } else {
+      // Inserting at a specific path - we need to update the parent to point to the new node
+      const parentPath = this.currentPath.slice(0, -1);
+      const direction = this.currentPath[this.currentPath.length - 1] as 'left' | 'right';
+      
+      const parentNode = this.getNodeAtPath(parentPath);
+      if (parentNode) {
+        // Create the new node
+        const newNode = normalizeBinaryTree({ root: newNodeSpec }).root!;
+        
+        // Update the parent to point to the new node
+        const updatedParent = updateBinaryTreeNode(parentNode, {
+          [direction]: newNode
+        });
+        
+        // Update the tree with the new parent
+        this.currentTree = this.updateTreeAtPath(parentPath, updatedParent);
+        
+        const currentNodeValue = parentNode.value;
+        const side = direction === 'left' ? 'left' : 'right';
+        
+        this.states.push(this.createTreeFromSpec({
+          root: this.currentTree.root,
+          name: `Inserting ${value} as ${side} child of ${currentNodeValue}`,
+        }));
+      }
+    }
+
+    return this;
+  }
+
+  /**
+   * Insert a new node as the left child of the current node
+   */
+  insertLeftChild(value: number): this {
+    const currentNode = this.getCurrentNode();
+    if (!currentNode) return this;
+
+    const newNodeSpec: BinaryTreeNodeSpec = {
+      value,
+      left: null,
+      right: null,
+      state: 'active'
+    };
+
+    // Create the new node
+    const newNode = normalizeBinaryTree({ root: newNodeSpec }).root!;
+    
+    // Update the current node to have the new left child
+    const updatedCurrentNode = updateBinaryTreeNode(currentNode, {
+      left: newNode
+    });
+    
+    // Update the tree with the modified current node
+    this.currentTree = this.updateTreeAtCurrentPath(updatedCurrentNode);
+    
+    this.states.push(this.createTreeFromSpec({
+      root: this.currentTree.root,
+      name: `Inserting ${value} as left child of ${currentNode.value}`,
+    }));
+
+    return this;
+  }
+
+  /**
+   * Insert a new node as the right child of the current node
+   */
+  insertRightChild(value: number): this {
+    const currentNode = this.getCurrentNode();
+    if (!currentNode) return this;
+
+    const newNodeSpec: BinaryTreeNodeSpec = {
+      value,
+      left: null,
+      right: null,
+      state: 'active'
+    };
+
+    // Create the new node
+    const newNode = normalizeBinaryTree({ root: newNodeSpec }).root!;
+    
+    // Update the current node to have the new right child
+    const updatedCurrentNode = updateBinaryTreeNode(currentNode, {
+      right: newNode
+    });
+    
+    // Update the tree with the modified current node
+    this.currentTree = this.updateTreeAtCurrentPath(updatedCurrentNode);
+    
+    this.states.push(this.createTreeFromSpec({
+      root: this.currentTree.root,
+      name: `Inserting ${value} as right child of ${currentNode.value}`,
+    }));
+
+    return this;
+  }
+
+  /**
+   * Mark the current node as visited
+   */
+  markVisited(): this {
+    const currentNode = this.getCurrentNode();
+    if (!currentNode) return this;
+
+    const updatedNode = updateBinaryTreeNode(currentNode, { state: 'visited' });
+    this.currentTree = this.updateTreeAtCurrentPath(updatedNode);
+    
+    return this;
+  }
+
+  /**
+   * Reset all nodes to default state
+   */
+  resetAll(): this {
+    if (this.currentTree.root) {
+      const resetRoot = this.resetAllNodesToDefault(this.currentTree.root);
+      this.currentTree = this.createTreeFromSpec({
+        root: resetRoot,
+      });
+    }
+    
+    return this;
+  }
+
+  /**
+   * Set the name of the current tree state and add it to states
+   */
+  setName(name: string): this {
+    this.states.push(this.createTreeFromSpec({
+      root: this.currentTree.root,
+      name,
+    }));
+    
+    return this;
+  }
+
+  /**
+   * Get the current node based on the current path
+   */
+  getCurrentNode(): BinaryTreeNode | null {
+    return this.getNodeAtPath(this.currentPath);
+  }
+
+  /**
+   * Check if the current node has a left child
+   */
+  hasLeftChild(): boolean {
+    const currentNode = this.getCurrentNode();
+    return currentNode?.left !== null && currentNode?.left !== undefined;
+  }
+
+  /**
+   * Check if the current node has a right child
+   */
+  hasRightChild(): boolean {
+    const currentNode = this.getCurrentNode();
+    return currentNode?.right !== null && currentNode?.right !== undefined;
+  }
+
+  /**
+   * Check if a node exists at the current path
+   */
+  nodeExists(): boolean {
+    return this.getCurrentNode() !== null;
+  }
+
+  /**
+   * Get all generated states
+   */
+  getStates(): NormalizedBinaryTree[] {
+    return this.states;
+  }
+
+  // Private helper methods
+
+  private getNodeAtPath(path: string[]): BinaryTreeNode | null {
+    let currentNode = this.currentTree.root;
+    
+    for (const direction of path) {
+      if (!currentNode) return null;
+      currentNode = direction === 'left' ? currentNode.left : currentNode.right;
+    }
+    
+    return currentNode;
+  }
+
+  private updateTreeAtCurrentPath(updatedNode: BinaryTreeNode): NormalizedBinaryTree {
+    return this.updateTreeAtPath(this.currentPath, updatedNode);
+  }
+
+  private updateTreeAtPath(path: string[], updatedNode: BinaryTreeNode): NormalizedBinaryTree {
+    if (!this.currentTree.root) {
+      return this.createTreeFromSpec({ root: updatedNode });
+    }
+
+    const newRoot = this.updateTreeAtPathRecursive(this.currentTree.root, path, updatedNode);
+    return this.createTreeFromSpec({ root: newRoot });
+  }
+
+  private updateTreeAtPathRecursive(
+    root: BinaryTreeNode,
+    path: string[],
+    updatedNode: BinaryTreeNode
+  ): BinaryTreeNode {
+    if (path.length === 0) {
+      return updatedNode;
+    }
+
+    const [direction, ...restPath] = path;
+
+    if (direction === 'left') {
+      return updateBinaryTreeNode(root, {
+        left: root.left ? this.updateTreeAtPathRecursive(root.left, restPath, updatedNode) : null
+      });
+    } else if (direction === 'right') {
+      return updateBinaryTreeNode(root, {
+        right: root.right ? this.updateTreeAtPathRecursive(root.right, restPath, updatedNode) : null
+      });
+    }
+
+    return root;
+  }
+
+  private resetAllNodesToDefault(node: BinaryTreeNode | null): BinaryTreeNode | null {
+    if (!node) return null;
+
+    return updateBinaryTreeNode(node, {
+      state: 'default',
+      left: this.resetAllNodesToDefault(node.left),
+      right: this.resetAllNodesToDefault(node.right)
+    });
+  }
+
+  private createTreeFromSpec(spec: BinaryTree): NormalizedBinaryTree {
+    return normalizeBinaryTree(spec);
+  }
+
+  private markActiveNodesAsVisited(node: BinaryTreeNode | null): BinaryTreeNode | null {
+    if (!node) return null;
+
+    const updatedNode = updateBinaryTreeNode(node, {
+      state: node.state === 'active' ? 'visited' : node.state,
+      left: this.markActiveNodesAsVisited(node.left),
+      right: this.markActiveNodesAsVisited(node.right)
+    });
+
+    return updatedNode;
+  }
 }
 
 /**
@@ -46,296 +385,64 @@ function createNodeSpec(
  * Generates a sequence of tree states showing the step-by-step process
  * of inserting a value into a Binary Search Tree.
  * 
- * Each step represents one atomic operation:
- * 1. Compare with current node
- * 2. Choose direction (left/right)
- * 3. Move to next node OR insert new node
- * 
- * @param tree - Current tree state (immutable)
- * @param value - Value to insert
- * @returns Array of tree states showing the insertion process
+ * This implementation mirrors actual BST insertion using iterative approach
+ * with while loops, making it educational and easy to understand.
  */
 export function generateBSTInsertStates(tree: NormalizedBinaryTree, value: number): NormalizedBinaryTree[] {
-  const states: NormalizedBinaryTree[] = [];
+  const builder = new BinaryTreeStateBuilder(tree);
   
-  // If tree is empty, create root node
+  // Handle empty tree
   if (!tree.root) {
-    const newRootSpec = createNodeSpec(value, null, null, 'active');
-    
-    states.push(createBinaryTreeFromSpec({
-      root: newRootSpec,
-      name: `Inserting ${value} as root`,
-      animationHints: [{ type: 'appear', metadata: { targetType: 'node', targetValue: value } }]
-    }));
-    
-    // Final state with node in default state
-    const finalRootSpec = createNodeSpec(value, null, null, 'default');
-    
-    states.push(createBinaryTreeFromSpec({
-      root: finalRootSpec,
-      name: `Inserted ${value} as root`,
-    }));
-    
-    return states;
+    return builder
+      .insertHere(value)
+      .resetAll()
+      .setName('Insert complete')
+      .getStates();
   }
   
-  // Helper function to traverse and insert
-  const insertNode = (
-    current: BinaryTreeNode,
-    path: string[]
-  ): { newTree: BinaryTreeNode; states: NormalizedBinaryTree[] } => {
-    const stepStates: NormalizedBinaryTree[] = [];
+  // Standard BST insertion - mirrors actual BST algorithm
+  while (builder.nodeExists()) {
+    const currentNode = builder.getCurrentNode()!;
     
-    // Step 1: Compare with current node (set to active)
-    const compareNode = updateBinaryTreeNode(current, {
-      state: 'active'
-    });
+    // Compare step
+    builder.compareWith(value);
     
-    const compareTree = updateTreeAtPath(tree.root!, path, compareNode);
-    stepStates.push(createBinaryTreeFromSpec({
-      root: compareTree,
-      name: `Comparing ${value} with ${current.value}`,
-    }));
+    if (value === currentNode.value) {
+      // Value already exists
+      return builder
+        .setName(`${value} already exists - no insertion`)
+        .resetAll()
+        .setName('No changes made')
+        .getStates();
+    }
     
-    // Step 2: Make decision and traverse
-    if (value < current.value) {
-      // Go left
-      const leftTraverseNode = updateBinaryTreeNode(compareNode, {
-        state: 'visited' // Mark as visited when we decide to traverse
-      });
-      
-      const leftTraverseTree = updateTreeAtPath(tree.root!, path, leftTraverseNode);
-      
-      // Only add traverse-down animation if there's actually a child to traverse to
-      const animationHints = current.left ? [{ 
-        type: 'traverse-down', 
-        metadata: { 
-          sourceValue: current.value, 
-          targetValue: current.left.value
-        } 
-      }] : undefined;
-      
-      stepStates.push(createBinaryTreeFromSpec({
-        root: leftTraverseTree,
-        name: `${value} < ${current.value}, going left`,
-        animationHints
-      }));
-      
-      if (current.left === null) {
-        // Insert here
-        const newNodeSpec = createNodeSpec(value, null, null, 'active');
-        
-        const insertedNode = updateBinaryTreeNode(leftTraverseNode, {
-          left: normalizeBinaryTree({ root: newNodeSpec }).root,
-          state: 'visited' // Keep parent as visited
-        });
-        
-        const insertedTree = updateTreeAtPath(tree.root!, path, insertedNode);
-        stepStates.push(createBinaryTreeFromSpec({
-          root: insertedTree,
-          name: `Inserting ${value} as left child of ${current.value}`,
-          animationHints: [{ type: 'appear', metadata: { targetType: 'node', targetValue: value } }]
-        }));
-        
-        // Mark new node as visited for completion
-        const completedNode = updateBinaryTreeNode(insertedNode, {
-          left: updateBinaryTreeNode(insertedNode.left!, { state: 'visited' })
-        });
-        
-        const completedTree = updateTreeAtPath(tree.root!, path, completedNode);
-        stepStates.push(createBinaryTreeFromSpec({
-          root: completedTree,
-          name: `Inserted ${value}`,
-        }));
-        
-        return { newTree: completedTree, states: stepStates };
+    // Choose direction and check if we can traverse or need to insert
+    if (value < currentNode.value) {
+      if (builder.hasLeftChild()) {
+        builder.traverseLeft();
       } else {
-        // Continue traversing left - mark current node as visited
-        const visitedNode = updateBinaryTreeNode(leftTraverseNode, {
-          state: 'visited'
-        });
-        
-        const result = insertNode(current.left, [...path, 'left']);
-        
-        // Update the previous "going left" step to show the visited state
-        const updatedAnimationHints = current.left ? [{ 
-          type: 'traverse-down', 
-          metadata: { 
-            sourceValue: current.value, 
-            targetValue: current.left.value
-          } 
-        }] : undefined;
-        
-        const updatedTraverseStep = createBinaryTreeFromSpec({
-          root: updateTreeAtPath(tree.root!, path, visitedNode),
-          name: `${value} < ${current.value}, going left`,
-          animationHints: updatedAnimationHints
-        });
-        
-        // Merge states and ensure ALL nodes in the current path remain visited
-        const baseStates = [...stepStates.slice(0, -1), updatedTraverseStep];
-        
-        // For each state from the recursive call, ensure the current path remains visited
-        const enhancedChildStates = result.states.map(childState => {
-          if (childState.root) {
-            // Mark the entire path from root to current node as visited
-            const rootWithVisitedPath = markPathAsVisited(childState.root, path);
-            return createBinaryTreeFromSpec({
-              root: rootWithVisitedPath,
-              name: childState.name,
-              animationHints: childState.animationHints
-            });
-          }
-          return childState;
-        });
-        
-        const mergedStates = [...baseStates, ...enhancedChildStates];
-        
-        return { 
-          newTree: result.newTree, 
-          states: mergedStates
-        };
-      }
-    } else if (value > current.value) {
-      // Go right (similar logic to left)
-      const rightTraverseNode = updateBinaryTreeNode(compareNode, {
-        state: 'visited' // Mark as visited when we decide to traverse
-      });
-      
-      const rightTraverseTree = updateTreeAtPath(tree.root!, path, rightTraverseNode);
-      
-      // Only add traverse-down animation if there's actually a child to traverse to
-      const animationHints = current.right ? [{ 
-        type: 'traverse-down', 
-        metadata: { 
-          sourceValue: current.value, 
-          targetValue: current.right.value
-        } 
-      }] : undefined;
-      
-      stepStates.push(createBinaryTreeFromSpec({
-        root: rightTraverseTree,
-        name: `${value} > ${current.value}, going right`,
-        animationHints
-      }));
-      
-      if (current.right === null) {
-        // Insert here
-        const newNodeSpec = createNodeSpec(value, null, null, 'active');
-        
-        const insertedNode = updateBinaryTreeNode(rightTraverseNode, {
-          right: normalizeBinaryTree({ root: newNodeSpec }).root,
-          state: 'visited' // Keep parent as visited
-        });
-        
-        const insertedTree = updateTreeAtPath(tree.root!, path, insertedNode);
-        stepStates.push(createBinaryTreeFromSpec({
-          root: insertedTree,
-          name: `Inserting ${value} as right child of ${current.value}`,
-          animationHints: [{ type: 'appear', metadata: { targetType: 'node', targetValue: value } }]
-        }));
-        
-        // Mark new node as visited for completion
-        const completedNode = updateBinaryTreeNode(insertedNode, {
-          right: updateBinaryTreeNode(insertedNode.right!, { state: 'visited' })
-        });
-        
-        const completedTree = updateTreeAtPath(tree.root!, path, completedNode);
-        stepStates.push(createBinaryTreeFromSpec({
-          root: completedTree,
-          name: `Inserted ${value}`,
-        }));
-        
-        return { newTree: completedTree, states: stepStates };
-      } else {
-        // Continue traversing right - mark current node as visited
-        const visitedNode = updateBinaryTreeNode(rightTraverseNode, {
-          state: 'visited'
-        });
-        
-        const result = insertNode(current.right, [...path, 'right']);
-        
-        // Update the previous "going right" step to show the visited state
-        const updatedAnimationHints = current.right ? [{ 
-          type: 'traverse-down', 
-          metadata: { 
-            sourceValue: current.value, 
-            targetValue: current.right.value
-          } 
-        }] : undefined;
-        
-        const updatedTraverseStep = createBinaryTreeFromSpec({
-          root: updateTreeAtPath(tree.root!, path, visitedNode),
-          name: `${value} > ${current.value}, going right`,
-          animationHints: updatedAnimationHints
-        });
-        
-        // Merge states and ensure ALL nodes in the current path remain visited
-        const baseStates = [...stepStates.slice(0, -1), updatedTraverseStep];
-        
-        // For each state from the recursive call, ensure the current path remains visited
-        const enhancedChildStates = result.states.map(childState => {
-          if (childState.root) {
-            // Mark the entire path from root to current node as visited
-            const rootWithVisitedPath = markPathAsVisited(childState.root, path);
-            return createBinaryTreeFromSpec({
-              root: rootWithVisitedPath,
-              name: childState.name,
-              animationHints: childState.animationHints
-            });
-          }
-          return childState;
-        });
-        
-        const mergedStates = [...baseStates, ...enhancedChildStates];
-        
-        return { 
-          newTree: result.newTree, 
-          states: mergedStates
-        };
+        // Insert as left child - don't traverse, just insert directly
+        builder.insertLeftChild(value);
+        return builder
+          .resetAll()
+          .setName('Insert complete')
+          .getStates();
       }
     } else {
-      // Value already exists - no insertion
-      const existsNode = updateBinaryTreeNode(compareNode, {
-        state: 'visited'
-      });
-      
-      const existsTree = updateTreeAtPath(tree.root!, path, existsNode);
-      stepStates.push(createBinaryTreeFromSpec({
-        root: existsTree,
-        name: `${value} already exists, not inserting`,
-        animationHints: [{ type: 'shake', metadata: { targetType: 'node', targetValue: value } }]
-      }));
-      
-      // Reset to original state
-      const resetNode = updateBinaryTreeNode(existsNode, {
-        state: 'default'
-      });
-      
-      const resetTree = updateTreeAtPath(tree.root!, path, resetNode);
-      stepStates.push(createBinaryTreeFromSpec({
-        root: resetTree,
-        name: `No changes made`,
-      }));
-      
-      return { newTree: resetTree, states: stepStates };
+      if (builder.hasRightChild()) {
+        builder.traverseRight();
+      } else {
+        // Insert as right child - don't traverse, just insert directly
+        builder.insertRightChild(value);
+        return builder
+          .resetAll()
+          .setName('Insert complete')
+          .getStates();
+      }
     }
-  };
-  
-  const result = insertNode(tree.root, []);
-  
-  // Add final cleanup state - reset all nodes to default
-  const finalCleanupStates = [...result.states];
-  const lastState = finalCleanupStates[finalCleanupStates.length - 1];
-  if (lastState && lastState.root) {
-    const cleanRoot = resetAllNodesToDefault(lastState.root);
-    finalCleanupStates.push(createBinaryTreeFromSpec({
-      root: cleanRoot,
-      name: `Insert complete - tree ready`,
-    }));
   }
   
-  return finalCleanupStates;
+  return builder.getStates();
 }
 
 /**
@@ -343,190 +450,138 @@ export function generateBSTInsertStates(tree: NormalizedBinaryTree, value: numbe
  * 
  * Generates a sequence of tree states showing the step-by-step process
  * of searching for a value in a Binary Search Tree.
+ * 
+ * This implementation mirrors actual BST search using iterative approach
+ * with while loops, making it educational and easy to understand.
  */
 export function generateBSTSearchStates(tree: NormalizedBinaryTree, value: number): NormalizedBinaryTree[] {
+  const builder = new BinaryTreeStateBuilder(tree);
+  
+  // Handle empty tree
   if (!tree.root) {
-    const emptyState = createBinaryTreeFromSpec({
-      root: null,
-      name: `Tree is empty, ${value} not found`,
-      animationHints: [{ type: 'shake', metadata: { targetType: 'tree' } }]
-    });
-    return [emptyState];
+    return builder
+      .setName(`Tree is empty - ${value} not found`)
+      .getStates();
   }
   
-  const searchNode = (current: BinaryTreeNode | null, path: string[]): NormalizedBinaryTree[] => {
-    if (!current) {
-      // Value not found
-      const notFoundState = createBinaryTreeFromSpec({
-        root: tree.root,
-        name: `${value} not found`,
-        animationHints: [{ type: 'shake', metadata: { targetType: 'tree' } }]
-      });
-      return [notFoundState];
-    }
+  // Standard BST search - mirrors actual BST algorithm
+  while (builder.nodeExists()) {
+    const currentNode = builder.getCurrentNode()!;
     
-    const currentStates: NormalizedBinaryTree[] = [];
+    // Compare step
+    builder.compareWith(value);
     
-    // Step 1: Compare with current node (set to active)
-    const compareNode = updateBinaryTreeNode(current, {
-      state: 'active'
-    });
-    
-    const compareTree = updateTreeAtPath(tree.root!, path, compareNode);
-    currentStates.push(createBinaryTreeFromSpec({
-      root: compareTree,
-      name: `Comparing ${value} with ${current.value}`,
-    }));
-    
-    if (value === current.value) {
+    if (value === currentNode.value) {
       // Found!
-      const foundNode = updateBinaryTreeNode(compareNode, {
-        state: 'visited'
-      });
-      
-      const foundTree = updateTreeAtPath(tree.root!, path, foundNode);
-      currentStates.push(createBinaryTreeFromSpec({
-        root: foundTree,
-        name: `Found ${value}!`,
-        animationHints: [{ type: 'found', metadata: { targetType: 'node', targetValue: value } }]
-      }));
-      
-      return currentStates;
-    } else if (value < current.value) {
-      // Go left - mark current as visited
-      const visitedNode = updateBinaryTreeNode(compareNode, {
-        state: 'visited'
-      });
-      
-      const visitedTree = updateTreeAtPath(tree.root!, path, visitedNode);
-      
-      // Only add traverse-down animation if there's actually a child to traverse to
-      const animationHints = current.left ? [{ 
-        type: 'traverse-down', 
-        metadata: { 
-          sourceValue: current.value, 
-          targetValue: current.left.value
-        } 
-      }] : undefined;
-      
-      currentStates.push(createBinaryTreeFromSpec({
-        root: visitedTree,
-        name: `${value} < ${current.value}, going left`,
-        animationHints
-      }));
-      
-      // Recursively search left subtree
-      const childResults = searchNode(current.left, [...path, 'left']);
-      
-      // Return combined states
-      return [...currentStates, ...childResults];
+      return builder
+        .setName(`Found ${value}!`)
+        .resetAll()
+        .setName('Search complete')
+        .getStates();
+    }
+    
+    // Choose direction and traverse
+    if (value < currentNode.value) {
+      if (builder.hasLeftChild()) {
+        builder.traverseLeft();
+      } else {
+        return builder
+          .setName(`${value} not found`)
+          .resetAll()
+          .setName('Search complete')
+          .getStates();
+      }
     } else {
-      // Go right - mark current as visited
-      const visitedNode = updateBinaryTreeNode(compareNode, {
-        state: 'visited'
-      });
-      
-      const visitedTree = updateTreeAtPath(tree.root!, path, visitedNode);
-      
-      // Only add traverse-down animation if there's actually a child to traverse to
-      const animationHints = current.right ? [{ 
-        type: 'traverse-down', 
-        metadata: { 
-          sourceValue: current.value, 
-          targetValue: current.right.value
-        } 
-      }] : undefined;
-      
-      currentStates.push(createBinaryTreeFromSpec({
-        root: visitedTree,
-        name: `${value} > ${current.value}, going right`,
-        animationHints
-      }));
-      
-      // Recursively search right subtree
-      const childResults = searchNode(current.right, [...path, 'right']);
-      
-      // Return combined states
-      return [...currentStates, ...childResults];
-    }
-  };
-  
-  const searchResult = searchNode(tree.root, []);
-  
-  // Add final cleanup state - reset all nodes to default
-  if (searchResult.length > 0) {
-    const lastState = searchResult[searchResult.length - 1];
-    if (lastState && lastState.root) {
-      // lastState.root is already a BinaryTreeNode from NormalizedBinaryTree
-      const cleanRoot = resetAllNodesToDefault(lastState.root);
-      searchResult.push(createBinaryTreeFromSpec({
-        root: cleanRoot,
-        name: `Search complete - tree ready`,
-      }));
+      if (builder.hasRightChild()) {
+        builder.traverseRight();
+      } else {
+        return builder
+          .setName(`${value} not found`)
+          .resetAll()
+          .setName('Search complete')
+          .getStates();
+      }
     }
   }
   
-  return searchResult;
+  return builder.getStates();
 }
 
 /**
- * Helper function to mark all nodes in a path as visited
+ * BST Find Minimum Algorithm
+ * 
+ * Generates a sequence of tree states showing the step-by-step process
+ * of finding the minimum value in a Binary Search Tree.
+ * 
+ * In a BST, the minimum value is always the leftmost node.
  */
-function markPathAsVisited(root: BinaryTreeNode, pathToMark: string[]): BinaryTreeNode {
-  if (pathToMark.length === 0) {
-    return updateBinaryTreeNode(root, { state: 'visited' });
+export function generateBSTFindMinStates(tree: NormalizedBinaryTree): NormalizedBinaryTree[] {
+  const builder = new BinaryTreeStateBuilder(tree);
+  
+  if (!tree.root) {
+    return builder.setName('Tree is empty - no minimum').getStates();
   }
   
-  const [direction, ...restPath] = pathToMark;
-  
-  if (direction === 'left' && root.left) {
-    return updateBinaryTreeNode(root, {
-      state: 'visited',
-      left: markPathAsVisited(root.left, restPath)
-    });
-  } else if (direction === 'right' && root.right) {
-    return updateBinaryTreeNode(root, {
-      state: 'visited',
-      right: markPathAsVisited(root.right, restPath)
-    });
+  // Keep going left until we find the leftmost node
+  while (builder.nodeExists()) {
+    const currentNode = builder.getCurrentNode()!;
+    
+    if (builder.hasLeftChild()) {
+      builder
+        .compareWith(currentNode.value)
+        .setName(`Current node: ${currentNode.value}, going left to find minimum`)
+        .traverseLeft();
+    } else {
+      // Found the minimum
+      const minValue = currentNode.value;
+      return builder
+        .compareWith(minValue)
+        .setName(`Found minimum: ${minValue}`)
+        .resetAll()
+        .setName('Find minimum complete')
+        .getStates();
+    }
   }
   
-  return updateBinaryTreeNode(root, { state: 'visited' });
+  return builder.getStates();
 }
 
 /**
- * Helper function to reset all nodes in a tree to default state
+ * BST Find Maximum Algorithm
+ * 
+ * Generates a sequence of tree states showing the step-by-step process
+ * of finding the maximum value in a Binary Search Tree.
+ * 
+ * In a BST, the maximum value is always the rightmost node.
  */
-function resetAllNodesToDefault(node: BinaryTreeNode | null): BinaryTreeNode | null {
-  if (!node) return null;
+export function generateBSTFindMaxStates(tree: NormalizedBinaryTree): NormalizedBinaryTree[] {
+  const builder = new BinaryTreeStateBuilder(tree);
   
-  return updateBinaryTreeNode(node, {
-    state: 'default',
-    left: resetAllNodesToDefault(node.left),
-    right: resetAllNodesToDefault(node.right)
-  });
+  if (!tree.root) {
+    return builder.setName('Tree is empty - no maximum').getStates();
+  }
+  
+  // Keep going right until we find the rightmost node
+  while (builder.nodeExists()) {
+    const currentNode = builder.getCurrentNode()!;
+    
+    if (builder.hasRightChild()) {
+      builder
+        .compareWith(currentNode.value)
+        .setName(`Current node: ${currentNode.value}, going right to find maximum`)
+        .traverseRight();
+    } else {
+      // Found the maximum
+      const maxValue = currentNode.value;
+      return builder
+        .compareWith(maxValue)
+        .setName(`Found maximum: ${maxValue}`)
+        .resetAll()
+        .setName('Find maximum complete')
+        .getStates();
+    }
+  }
+  
+  return builder.getStates();
 }
 
-/**
- * Helper function to update a node at a specific path in the tree.
- * Creates a new tree with the updated node while preserving immutability.
- */
-function updateTreeAtPath(root: BinaryTreeNode, path: string[], updatedNode: BinaryTreeNode): BinaryTreeNode {
-  if (path.length === 0) {
-    return updatedNode;
-  }
-  
-  const [direction, ...restPath] = path;
-  
-  if (direction === 'left') {
-    return updateBinaryTreeNode(root, {
-      left: root.left ? updateTreeAtPath(root.left, restPath, updatedNode) : null
-    });
-  } else if (direction === 'right') {
-    return updateBinaryTreeNode(root, {
-      right: root.right ? updateTreeAtPath(root.right, restPath, updatedNode) : null
-    });
-  }
-  
-  return root;
-}

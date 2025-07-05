@@ -3,7 +3,7 @@ import { createOperation } from '../../../lib/core/types';
 import { OperationController } from '../../../lib/core/OperationController';
 import type { BinaryTree, BinaryTreeNode, NormalizedBinaryTree } from '../types';
 import { normalizeBinaryTree } from '../types';
-import { generateBSTInsertStates, generateBSTSearchStates } from '../algorithms';
+import { generateBSTInsertStates, generateBSTSearchStates, generateBSTFindMinStates, generateBSTFindMaxStates } from '../algorithms';
 
 /**
  * Helper function to create a NormalizedBinaryTree from a plain object specification
@@ -136,11 +136,11 @@ export class BSTOperationController extends OperationController<NormalizedBinary
       }
       
       case 'findMin': {
-        return this.generateFindMinStates(currentState);
+        return generateBSTFindMinStates(currentState);
       }
       
       case 'findMax': {
-        return this.generateFindMaxStates(currentState);
+        return generateBSTFindMaxStates(currentState);
       }
       
       default:
@@ -447,105 +447,4 @@ export class BSTOperationController extends OperationController<NormalizedBinary
     return null;
   }
 
-  /**
-   * Generates animation states for finding the minimum value.
-   * Traverses left until reaching the leftmost node.
-   */
-  private generateFindMinStates(currentState: NormalizedBinaryTree): readonly NormalizedBinaryTree[] {
-    const states: NormalizedBinaryTree[] = [];
-    
-    if (!currentState.root) {
-      // Empty tree
-      states.push(createBinaryTree(null, "Tree is empty"));
-      return states;
-    }
-
-    let current = currentState.root;
-    
-    // Start with initial state showing the operation has begun
-    states.push(createBinaryTree(
-      this.setNodeState(currentState.root, current.value, 'active'),
-      `Finding minimum: starting at root ${current.value}`
-    ));
-
-    // Traverse left until we find the leftmost node
-    while (current.left) {
-      current = current.left;
-      states.push(createBinaryTree(
-        this.setNodeState(currentState.root, current.value, 'active'),
-        `Finding minimum: moving left to ${current.value}`
-      ));
-    }
-
-    // Final state - found the minimum
-    states.push(createBinaryTree(
-      this.setNodeState(currentState.root, current.value, 'visited'),
-      `Minimum value found: ${current.value}`
-    ));
-
-    return states;
-  }
-
-  /**
-   * Generates animation states for finding the maximum value.
-   * Traverses right until reaching the rightmost node.
-   */
-  private generateFindMaxStates(currentState: NormalizedBinaryTree): readonly NormalizedBinaryTree[] {
-    const states: NormalizedBinaryTree[] = [];
-    
-    if (!currentState.root) {
-      // Empty tree
-      states.push(createBinaryTree(null, "Tree is empty"));
-      return states;
-    }
-
-    let current = currentState.root;
-    
-    // Start with initial state showing the operation has begun
-    states.push(createBinaryTree(
-      this.setNodeState(currentState.root, current.value, 'active'),
-      `Finding maximum: starting at root ${current.value}`
-    ));
-
-    // Traverse right until we find the rightmost node
-    while (current.right) {
-      current = current.right;
-      states.push(createBinaryTree(
-        this.setNodeState(currentState.root, current.value, 'active'),
-        `Finding maximum: moving right to ${current.value}`
-      ));
-    }
-
-    // Final state - found the maximum
-    states.push(createBinaryTree(
-      this.setNodeState(currentState.root, current.value, 'visited'),
-      `Maximum value found: ${current.value}`
-    ));
-
-    return states;
-  }
-
-  /**
-   * Helper function to set the state of a specific node in the tree.
-   * Returns a new tree with the specified node's state updated.
-   */
-  private setNodeState(root: BinaryTreeNode | null, targetValue: number, newState: 'default' | 'active' | 'visited'): BinaryTreeNode | null {
-    if (!root) return null;
-
-    if (root.value === targetValue) {
-      return {
-        ...root,
-        state: newState,
-        left: this.setNodeState(root.left, targetValue, 'default'),
-        right: this.setNodeState(root.right, targetValue, 'default')
-      };
-    }
-
-    return {
-      ...root,
-      state: 'default', // Reset other nodes to default
-      left: this.setNodeState(root.left, targetValue, newState),
-      right: this.setNodeState(root.right, targetValue, newState)
-    };
-  }
 }
