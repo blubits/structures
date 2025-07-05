@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { BSTOperationController } from './BSTOperationController';
+import { HistoryController } from '../../../lib/core/History';
 import { normalizeBinaryTree } from '../types';
 import type { BinaryTree, NormalizedBinaryTree } from '../types';
 import { registerBinaryTreeAnimations } from '../components/animations';
@@ -12,7 +12,7 @@ registerBinaryTreeAnimations();
  * Context for BST operations and state management
  */
 interface BSTContextValue {
-  controller: BSTOperationController;
+  historyController: HistoryController<NormalizedBinaryTree>;
   currentState: NormalizedBinaryTree;
   isExecuting: boolean;
   animationSpeed: 'slow' | 'normal' | 'fast';
@@ -32,26 +32,27 @@ interface BSTProviderProps {
 /**
  * Provider component for BST visualization
  * 
- * Manages the BST controller, state updates, and animation settings.
+ * Manages the history controller, state updates, and animation settings.
  * Provides a clean interface for BST components to interact with the data structure.
  */
 export function BSTProvider({ children, initialTree }: BSTProviderProps) {
-  // Initialize the BST controller
-  const controller = useMemo(() => {
-    const newController = new BSTOperationController(initialTree || normalizeBinaryTree({ root: null, name: "Empty BST" }));
+  // Initialize the history controller
+  const historyController = useMemo(() => {
+    const initialState = initialTree ? normalizeBinaryTree(initialTree) : normalizeBinaryTree({ root: null, name: "Empty BST" });
+    const controller = new HistoryController<NormalizedBinaryTree>(initialState);
     
     if (import.meta.env.DEV) {
-      console.log('🏗️ BSTProvider: Controller initialized', {
+      console.log('🏗️ BSTProvider: History controller initialized', {
         hasInitialTree: !!initialTree,
-        initialState: newController.getCurrentVisualizationState()
+        initialState: initialState
       });
     }
-    return newController;
+    return controller;
   }, [initialTree]);
 
   // Track current state manually for now (TODO: integrate with useHistory in future)
   const [currentState, setCurrentState] = useState<NormalizedBinaryTree>(() => 
-    controller.getCurrentVisualizationState() || normalizeBinaryTree({ root: null, name: "Empty BST" })
+    historyController.getCurrentVisualizationState() || normalizeBinaryTree({ root: null, name: "Empty BST" })
   );
 
   // Animation state
@@ -60,10 +61,10 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
   // Execution state - currently always false since loadExample was removed
   const isExecuting = false;
 
-  // Subscribe to controller state changes
+  // Subscribe to history controller state changes
   useEffect(() => {
-    const unsubscribe = controller.getHistoryController().subscribe(() => {
-      const newState = controller.getCurrentVisualizationState();
+    const unsubscribe = historyController.subscribe(() => {
+      const newState = historyController.getCurrentVisualizationState();
       if (import.meta.env.DEV) {
         console.log('🏗️ BSTProvider: State change detected', {
           hasNewState: !!newState,
@@ -78,10 +79,10 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
     });
 
     return unsubscribe;
-  }, [controller]);
+  }, [historyController]);
 
   const contextValue: BSTContextValue = {
-    controller,
+    historyController,
     currentState,
     isExecuting,
     animationSpeed,

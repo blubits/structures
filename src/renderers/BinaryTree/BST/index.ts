@@ -1,5 +1,4 @@
 // BST-specific exports
-export { BSTOperationController } from './BSTOperationController';
 export { BSTProvider, useBST } from './BSTProvider';
 
 // BST Components

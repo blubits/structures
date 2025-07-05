@@ -8,47 +8,86 @@ import {
   Trash2,
   Menu
 } from "lucide-react";
-import type { BSTOperationController } from "../BSTOperationController";
+import { useBST } from "../BSTProvider";
+import { createOperation } from "../../../../lib/core/types";
+import { generateBSTInsertStates, generateBSTSearchStates, generateBSTFindMinStates, generateBSTFindMaxStates } from "../../algorithms";
+import type { NormalizedBinaryTree } from "../../types";
 
 interface BSTOperationsMenuProps {
-  controller: BSTOperationController;
   isExecuting: boolean;
 }
 
 export function BSTOperationsMenu({
-  controller,
   isExecuting
 }: BSTOperationsMenuProps) {
+  const { historyController, currentState } = useBST();
   const [insertValue, setInsertValue] = useState(() => Math.floor(Math.random() * 50) + 1);
   const [searchValue, setSearchValue] = useState(() => Math.floor(Math.random() * 50) + 1);
   const [deleteValue, setDeleteValue] = useState(() => Math.floor(Math.random() * 50) + 1);
   const [isOpen, setIsOpen] = useState(false);
 
   const handleInsert = () => {
-    controller.insertWithStepping(insertValue);
+    const operation = createOperation(
+      'insert',
+      { value: insertValue },
+      `Insert ${insertValue}`
+    );
+    
+    const states = generateBSTInsertStates(currentState, insertValue);
+    historyController.execute(operation, states);
+    historyController.startSteppingThroughCurrentOperation();
+    
     setInsertValue(Math.floor(Math.random() * 50) + 1);
     setIsOpen(false);
   };
 
   const handleSearch = () => {
-    controller.searchWithStepping(searchValue);
+    const operation = createOperation(
+      'search',
+      { value: searchValue },
+      `Search for ${searchValue}`
+    );
+    
+    const states = generateBSTSearchStates(currentState, searchValue);
+    historyController.execute(operation, states);
+    historyController.startSteppingThroughCurrentOperation();
+    
     setSearchValue(Math.floor(Math.random() * 50) + 1);
     setIsOpen(false);
   };
 
   const handleDelete = () => {
-    controller.delete(deleteValue);
+    // TODO: Implement delete operation
+    console.log('Delete operation not yet implemented');
     setDeleteValue(Math.floor(Math.random() * 50) + 1);
     setIsOpen(false);
   };
 
   const handleFindMin = () => {
-    controller.findMinWithStepping();
+    const operation = createOperation(
+      'findMin',
+      {},
+      'Find minimum value'
+    );
+    
+    const states = generateBSTFindMinStates(currentState);
+    historyController.execute(operation, states);
+    historyController.startSteppingThroughCurrentOperation();
+    
     setIsOpen(false);
   };
 
   const handleFindMax = () => {
-    controller.findMaxWithStepping();
+    const operation = createOperation(
+      'findMax',
+      {},
+      'Find maximum value'
+    );
+    
+    const states = generateBSTFindMaxStates(currentState);
+    historyController.execute(operation, states);
+    historyController.startSteppingThroughCurrentOperation();
+    
     setIsOpen(false);
   };
 

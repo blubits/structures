@@ -1,11 +1,10 @@
 import { useCallback, useState } from "react";
 import { ChevronDown, ChevronRight, Bug } from "lucide-react";
-import type { BSTOperationController } from "../BSTOperationController";
+import { useBST } from "../BSTProvider";
 import type { BinaryTree } from "../../types";
 import { countNodes, normalizeBinaryTree } from "../../types";
 
 interface BSTOperationControlsProps {
-  controller: BSTOperationController;
   currentState: BinaryTree;
   isPlaying: boolean;
   onPlayPause: () => void;
@@ -29,53 +28,47 @@ interface BSTOperationControlsProps {
  * - Debug information about current state transitions
  */
 export function BSTOperationControls({
-  controller,
   isPlaying,
   onPlayPause,
   animationSpeed,
   onSpeedChange
 }: BSTOperationControlsProps) {
+  const { historyController } = useBST();
 
   // Debug layer state
   const [showDebugLayer, setShowDebugLayer] = useState(false);
 
   // Step navigation handlers
   const handleStepForward = useCallback(() => {
-    controller.stepForward();
-  }, [controller]);
+    historyController.stepForward();
+  }, [historyController]);
 
   const handleStepBackward = useCallback(() => {
-    controller.stepBackward();
-  }, [controller]);
+    historyController.stepBackward();
+  }, [historyController]);
 
   const handleRestart = useCallback(() => {
     // Start stepping through the current operation from the beginning
-    const currentOperation = controller.getCurrentOperation();
-    if (currentOperation) {
-      // Execute the same operation again with stepping
-      if (currentOperation.type === 'insert' && currentOperation.params?.value !== undefined) {
-        controller.insertWithStepping(currentOperation.params.value as number);
-      } else if (currentOperation.type === 'search' && currentOperation.params?.value !== undefined) {
-        controller.searchWithStepping(currentOperation.params.value as number);
-      } else if (currentOperation.type === 'findMin') {
-        controller.findMinWithStepping();
-      } else if (currentOperation.type === 'findMax') {
-        controller.findMaxWithStepping();
-      }
-    }
-  }, [controller]);
+    historyController.startSteppingThroughCurrentOperation();
+  }, [historyController]);
 
   // Get current operation info
-  const currentAnimationIndex = controller.getCurrentAnimationIndex();
-  const isAnimating = controller.isAnimating();
+  const currentAnimationIndex = historyController.getCurrentAnimationIndex();
+  const isAnimating = historyController.isAnimating();
   
   // Availability checks
-  const canStepForward = controller.canStepForward();
-  const canStepBackward = controller.canStepBackward();
+  const canStepForward = historyController.canStepForward();
+  const canStepBackward = historyController.canStepBackward();
 
   // Get current operation details
-  const currentOperation = controller.getCurrentOperation();
-  const currentOperationStates = controller.getCurrentOperationStates();
+  const currentOperationIndex = historyController.getCurrentOperationIndex();
+  const history = historyController.getHistory();
+  const currentOperation = currentOperationIndex >= 0 && currentOperationIndex < history.length 
+    ? history[currentOperationIndex].operation 
+    : null;
+  const currentOperationStates = currentOperationIndex >= 0 && currentOperationIndex < history.length 
+    ? history[currentOperationIndex].states 
+    : [];
   
   // Don't render if no active operation or we haven't started stepping through states
   const hasStartedStepping = currentAnimationIndex >= 0;
@@ -197,7 +190,7 @@ export function BSTOperationControls({
               <div>
                 <div className="font-medium mb-1 text-yellow-400">Current Step Details:</div>
                 <div className="bg-black/40 rounded p-2 font-mono">
-                  <div>Operation Index: {controller.getCurrentOperationIndex()}</div>
+                  <div>Operation Index: {historyController.getCurrentOperationIndex()}</div>
                   <div>Animation Index: {currentAnimationIndex}</div>
                   <div>Is Animating: {isAnimating ? 'Yes' : 'No'}</div>
                   <div>Can Step Forward: {canStepForward ? 'Yes' : 'No'}</div>
@@ -263,7 +256,7 @@ export function BSTOperationControls({
               <div>
                 <div className="font-medium mb-1 text-purple-400">Operation Sequence:</div>
                 <div className="bg-black/40 rounded p-2 font-mono max-h-32 overflow-y-auto">
-                  {currentOperationStates.map((state, index) => (
+                  {currentOperationStates.map((state: any, index: number) => (
                     <div 
                       key={index} 
                       className={`text-xs mb-1 ${

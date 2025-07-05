@@ -68,7 +68,7 @@ function BSTPage() {
  * BST page content that has access to the BST context
  */
 function BSTPageContent() {
-  const { controller, currentState, isExecuting, animationSpeed, setAnimationSpeed } = useBST();
+  const { historyController, currentState, isExecuting, animationSpeed, setAnimationSpeed } = useBST();
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedOperationIndex, setSelectedOperationIndex] = useState(-1);
 
@@ -85,8 +85,8 @@ function BSTPageContent() {
     }
   }, [currentState, isExecuting]);
 
-  // Convert controller history to HistoryMenu format
-  const historyOperations: HistoryOperation[] = controller.getHistory().map((group, index) => ({
+  // Convert history controller history to HistoryMenu format
+  const historyOperations: HistoryOperation[] = historyController.getHistory().map((group, index) => ({
     id: group.operation.id,
     type: group.operation.type,
     description: group.operation.description,
@@ -101,46 +101,46 @@ function BSTPageContent() {
   };
 
   const handleSelectOperation = (operationIndex: number) => {
-    controller.jumpTo(operationIndex);
+    historyController.jumpTo(operationIndex);
     setSelectedOperationIndex(operationIndex);
   };
 
   const handleClearHistory = () => {
-    controller.clear();
+    historyController.clear();
     setSelectedOperationIndex(-1);
   };
 
   // Basic undo/redo functionality using the operation history
   const handleUndo = () => {
-    const history = controller.getHistory();
+    const history = historyController.getHistory();
     if (selectedOperationIndex > 0) {
       const newIndex = selectedOperationIndex - 1;
-      controller.jumpTo(newIndex);
+      historyController.jumpTo(newIndex);
       setSelectedOperationIndex(newIndex);
     } else if (history.length > 0 && selectedOperationIndex === -1) {
       // If nothing is selected, go to the last operation
       const newIndex = history.length - 1;
-      controller.jumpTo(newIndex);
+      historyController.jumpTo(newIndex);
       setSelectedOperationIndex(newIndex);
     }
   };
 
   const handleRedo = () => {
-    const history = controller.getHistory();
+    const history = historyController.getHistory();
     if (selectedOperationIndex < history.length - 1) {
       const newIndex = selectedOperationIndex + 1;
-      controller.jumpTo(newIndex);
+      historyController.jumpTo(newIndex);
       setSelectedOperationIndex(newIndex);
     }
   };
 
   const canUndo = (() => {
-    const history = controller.getHistory();
+    const history = historyController.getHistory();
     return history.length > 0 && (selectedOperationIndex > 0 || selectedOperationIndex === -1);
   })();
 
   const canRedo = (() => {
-    const history = controller.getHistory();
+    const history = historyController.getHistory();
     return selectedOperationIndex >= 0 && selectedOperationIndex < history.length - 1;
   })();
 
@@ -166,13 +166,11 @@ function BSTPageContent() {
 
       {/* Operations menu */}
       <BSTOperationsMenu
-        controller={controller}
         isExecuting={isExecuting}
       />
 
       {/* Operation controls */}
       <BSTOperationControls
-        controller={controller}
         currentState={currentState}
         isPlaying={isPlaying}
         onPlayPause={handlePlayPause}
@@ -184,10 +182,10 @@ function BSTPageContent() {
       {import.meta.env.DEV && (
         <DebugPanel
           currentState={currentState}
-          operationHistory={controller.getHistory()}
-          currentOperationIndex={controller.getCurrentOperationIndex()}
-          currentAnimationIndex={controller.getCurrentAnimationIndex()}
-          isAnimating={controller.isAnimating()}
+          operationHistory={historyController.getHistory()}
+          currentOperationIndex={historyController.getCurrentOperationIndex()}
+          currentAnimationIndex={historyController.getCurrentAnimationIndex()}
+          isAnimating={historyController.isAnimating()}
         />
       )}
 
