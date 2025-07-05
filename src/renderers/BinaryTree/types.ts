@@ -37,24 +37,12 @@ export interface BinaryTreeNode {
 }
 
 /**
- * Represents a binary tree data structure state.
- * Extends DataStructureState to work with the generic framework.
+ * Represents a binary tree data structure state (internal normalized format).
+ * This is what the system uses internally after normalization.
  */
-export interface BinaryTree extends DataStructureState {
+export interface NormalizedBinaryTree extends DataStructureState {
   /** Root node of the tree (null for empty tree) */
   root: BinaryTreeNode | null;
-  
-  /** 
-   * Total number of nodes in the tree.
-   * Cached for performance - should be maintained by operations.
-   */
-  nodeCount?: number;
-  
-  /** 
-   * Height of the tree.
-   * Cached for performance - should be maintained by operations.
-   */
-  height?: number;
 }
 
 /**
@@ -72,7 +60,7 @@ export interface BinaryTreeNodeAnimationContext {
   nodeData: BinaryTreeNode;
   
   /** The complete tree state */
-  treeState: BinaryTree;
+  treeState: NormalizedBinaryTree;
   
   /** Callback when animation completes */
   onComplete?: () => void;
@@ -92,7 +80,7 @@ export interface BinaryTreeLinkAnimationContext {
   targetNode: BinaryTreeNode;
   
   /** The complete tree state */
-  treeState: BinaryTree;
+  treeState: NormalizedBinaryTree;
   
   /** Callback when animation completes */
   onComplete?: () => void;
@@ -106,7 +94,7 @@ export interface BinaryTreeVisualizationContext {
   hints: readonly AnimationHint[];
   
   /** The complete tree state */
-  treeState: BinaryTree;
+  treeState: NormalizedBinaryTree;
   
   /** Callback when all animations complete */
   onComplete?: () => void;
@@ -199,26 +187,6 @@ export const DEFAULT_BINARY_TREE_CONFIG: BinaryTreeConfig = {
  */
 
 /**
- * Creates a new binary tree node with immutable properties.
- */
-export function createBinaryTreeNode(
-  value: number,
-  left: BinaryTreeNode | null = null,
-  right: BinaryTreeNode | null = null,
-  state: BinaryTreeNode['state'] = 'default',
-  metadata?: Record<string, any>
-): BinaryTreeNode {
-  return {
-    value,
-    left,
-    right,
-    state,
-    id: crypto.randomUUID(),
-    metadata: metadata ? { ...metadata } : undefined,
-  };
-}
-
-/**
  * Creates a copy of a node with updated properties (immutable update).
  */
 export function updateBinaryTreeNode(
@@ -234,46 +202,19 @@ export function updateBinaryTreeNode(
 }
 
 /**
- * Creates a new binary tree state.
- */
-export function createBinaryTree(
-  root: BinaryTreeNode | null = null,
-  name?: string,
-  animationHints?: AnimationHint[],
-  metadata?: Record<string, any>
-): BinaryTree {
-  return {
-    root,
-    name,
-    animationHints: animationHints ? [...animationHints] : undefined,
-    _metadata: metadata ? { ...metadata } : undefined,
-    nodeCount: root ? countNodes(root) : 0,
-    height: root ? calculateHeight(root) : 0,
-  };
-}
-
-/**
  * Creates a copy of a tree with updated properties (immutable update).
  */
 export function updateBinaryTree(
-  tree: BinaryTree,
-  updates: Partial<BinaryTree>
-): BinaryTree {
-  const newTree = {
+  tree: NormalizedBinaryTree,
+  updates: Partial<NormalizedBinaryTree>
+): NormalizedBinaryTree {
+  return {
     ...tree,
     ...updates,
     // Ensure arrays are copied for immutability
     animationHints: updates.animationHints ? [...updates.animationHints] : tree.animationHints,
     _metadata: updates._metadata ? { ...updates._metadata } : tree._metadata,
   };
-  
-  // Recalculate derived properties if root changed
-  if (updates.root !== undefined) {
-    newTree.nodeCount = newTree.root ? countNodes(newTree.root) : 0;
-    newTree.height = newTree.root ? calculateHeight(newTree.root) : 0;
-  }
-  
-  return newTree;
 }
 
 /**
@@ -450,9 +391,10 @@ export interface BinaryTreeNodeSpec {
 }
 
 /**
- * Enhanced binary tree interface that accepts plain objects.
+ * User-friendly binary tree interface that accepts plain objects.
+ * This is what users should write - simple, intuitive tree structures.
  */
-export interface BinaryTreeSpec {
+export interface BinaryTree {
   /** Root node of the tree (null for empty tree) */
   root: BinaryTreeNodeSpec | null;
   
@@ -515,10 +457,10 @@ export function normalizeBinaryTreeNode(
 }
 
 /**
- * Converts a plain object tree specification into a full BinaryTree
+ * Converts a plain object tree specification into a full NormalizedBinaryTree
  * with stable IDs and computed properties.
  */
-export function normalizeBinaryTree(spec: BinaryTreeSpec): BinaryTree {
+export function normalizeBinaryTree(spec: BinaryTree): NormalizedBinaryTree {
   const normalizedRoot = normalizeBinaryTreeNode(spec.root);
   
   return {
@@ -526,8 +468,6 @@ export function normalizeBinaryTree(spec: BinaryTreeSpec): BinaryTree {
     name: spec.name,
     animationHints: spec.animationHints ? [...spec.animationHints] : undefined,
     _metadata: spec._metadata ? { ...spec._metadata } : undefined,
-    nodeCount: normalizedRoot ? countNodes(normalizedRoot) : 0,
-    height: normalizedRoot ? calculateHeight(normalizedRoot) : 0,
   };
 }
 
@@ -536,9 +476,9 @@ export function normalizeBinaryTree(spec: BinaryTreeSpec): BinaryTree {
  * This is similar to React's reconciliation but for tree structures.
  */
 export function reconcileBinaryTree(
-  prevTree: BinaryTree | null,
-  newSpec: BinaryTreeSpec
-): BinaryTree {
+  prevTree: NormalizedBinaryTree | null,
+  newSpec: BinaryTree
+): NormalizedBinaryTree {
   const newTree = normalizeBinaryTree(newSpec);
   
   if (!prevTree || !prevTree.root || !newTree.root) {
@@ -551,8 +491,6 @@ export function reconcileBinaryTree(
   return {
     ...newTree,
     root: reconciledRoot,
-    nodeCount: reconciledRoot ? countNodes(reconciledRoot) : 0,
-    height: reconciledRoot ? calculateHeight(reconciledRoot) : 0,
   };
 }
 

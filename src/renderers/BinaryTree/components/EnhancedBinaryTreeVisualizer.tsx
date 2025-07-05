@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useMemo } from "react";
 import { useTheme } from "../../../components/ThemeProvider";
-import type { BinaryTree, BinaryTreeSpec } from "../types";
+import type { BinaryTree, NormalizedBinaryTree } from "../types";
 import { renderBinaryTree } from "./renderer.js";
 import { registerBinaryTreeAnimations } from "./animations.js";
 import { reconcileBinaryTree } from "../types";
@@ -11,22 +11,21 @@ import { reconcileBinaryTree } from "../types";
 let animationsInitialized = false;
 
 interface EnhancedBinaryTreeVisualizerProps {
-  // Accept either a full BinaryTree or a plain object specification
-  state: BinaryTree | BinaryTreeSpec;
+  // Accept a user-friendly BinaryTree
+  state: BinaryTree;
   animationSpeed?: 'slow' | 'normal' | 'fast';
   disableResize?: boolean;
 }
 
 export const EnhancedBinaryTreeVisualizer: React.FC<EnhancedBinaryTreeVisualizerProps> = ({
   state,
-  animationSpeed = 'normal',
-  disableResize = true
+  animationSpeed = 'normal'
 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isInitialized = useRef(false);
   const renderCount = useRef(0);
-  const prevTreeRef = useRef<BinaryTree | null>(null);
+  const prevTreeRef = useRef<NormalizedBinaryTree | null>(null);
   const { prefersDarkMode } = useTheme();
 
   // Initialize animations on first mount
@@ -49,22 +48,14 @@ export const EnhancedBinaryTreeVisualizer: React.FC<EnhancedBinaryTreeVisualizer
       console.log('🔄 EnhancedBinaryTreeVisualizer: Reconciling tree state', {
         renderCount: renderCount.current,
         hasState: !!state,
-        isSpec: !('nodeCount' in state), // Check if it's a spec vs full tree
         prevTree: prevTreeRef.current?.name,
         newName: state?.name,
       });
     }
 
-    let reconciledTree: BinaryTree;
-
-    // Check if the input is a plain object specification
-    if (!('nodeCount' in state)) {
-      // It's a BinaryTreeSpec, reconcile it with the previous tree
-      reconciledTree = reconcileBinaryTree(prevTreeRef.current, state as BinaryTreeSpec);
-    } else {
-      // It's already a BinaryTree, use it as is
-      reconciledTree = state as BinaryTree;
-    }
+    // Always reconcile with the previous normalized tree
+    // This normalizes the input and preserves node identities where possible
+    const reconciledTree = reconcileBinaryTree(prevTreeRef.current, state);
 
     // Store the reconciled tree for next time
     prevTreeRef.current = reconciledTree;
@@ -74,8 +65,6 @@ export const EnhancedBinaryTreeVisualizer: React.FC<EnhancedBinaryTreeVisualizer
         hasRoot: !!reconciledTree.root,
         rootValue: reconciledTree.root?.value,
         rootId: reconciledTree.root?.id,
-        nodeCount: reconciledTree.nodeCount,
-        height: reconciledTree.height,
         animationHintsCount: reconciledTree.animationHints?.length || 0,
       });
     }
@@ -121,7 +110,7 @@ export const EnhancedBinaryTreeVisualizer: React.FC<EnhancedBinaryTreeVisualizer
     try {
       const isFirstRender = !isInitialized.current;
       
-      renderBinaryTree(svgRef.current, containerRef.current, visualState, isFirstRender);
+      renderBinaryTree(svgRef.current, visualState, isFirstRender);
       
       if (isFirstRender) {
         isInitialized.current = true;
@@ -161,7 +150,7 @@ export const EnhancedBinaryTreeVisualizer: React.FC<EnhancedBinaryTreeVisualizer
 
 // Example usage:
 /*
-const treeSpec: BinaryTreeSpec = {
+const tree: BinaryTree = {
   root: {
     value: 8,
     state: "default",
@@ -177,5 +166,5 @@ const treeSpec: BinaryTreeSpec = {
   animationHints: [],
 };
 
-<EnhancedBinaryTreeVisualizer state={treeSpec} />
+<EnhancedBinaryTreeVisualizer state={tree} />
 */

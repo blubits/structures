@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { BSTOperationController } from './BSTOperationController';
-import { createBinaryTree } from '../types';
-import type { BinaryTree } from '../types';
+import { normalizeBinaryTree } from '../types';
+import type { BinaryTree, NormalizedBinaryTree } from '../types';
 import { registerBinaryTreeAnimations } from '../components/animations';
 
 // Register animations on module load
@@ -13,7 +13,7 @@ registerBinaryTreeAnimations();
  */
 interface BSTContextValue {
   controller: BSTOperationController;
-  currentState: BinaryTree;
+  currentState: NormalizedBinaryTree;
   isExecuting: boolean;
   animationSpeed: 'slow' | 'normal' | 'fast';
   setAnimationSpeed: (speed: 'slow' | 'normal' | 'fast') => void;
@@ -38,7 +38,7 @@ interface BSTProviderProps {
 export function BSTProvider({ children, initialTree }: BSTProviderProps) {
   // Initialize the BST controller
   const controller = useMemo(() => {
-    const newController = new BSTOperationController(initialTree || createBinaryTree(null, "Empty BST"));
+    const newController = new BSTOperationController(initialTree || normalizeBinaryTree({ root: null, name: "Empty BST" }));
     
     if (import.meta.env.DEV) {
       console.log('🏗️ BSTProvider: Controller initialized', {
@@ -50,8 +50,8 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
   }, [initialTree]);
 
   // Track current state manually for now (TODO: integrate with useHistory in future)
-  const [currentState, setCurrentState] = useState<BinaryTree>(() => 
-    controller.getCurrentVisualizationState() || createBinaryTree(null, "Empty BST")
+  const [currentState, setCurrentState] = useState<NormalizedBinaryTree>(() => 
+    controller.getCurrentVisualizationState() || normalizeBinaryTree({ root: null, name: "Empty BST" })
   );
 
   // Animation state
@@ -69,12 +69,11 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
           hasNewState: !!newState,
           stateName: newState?.name,
           hasRoot: !!newState?.root,
-          rootValue: newState?.root?.value,
-          nodeCount: newState?.nodeCount
+          rootValue: newState?.root?.value
         });
       }
       if (newState) {
-        setCurrentState(newState as BinaryTree);
+        setCurrentState(newState);
       }
     });
 

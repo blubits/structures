@@ -1,9 +1,26 @@
 import type { Operation } from '../../../lib/core/types';
 import { createOperation } from '../../../lib/core/types';
 import { OperationController } from '../../../lib/core/OperationController';
-import type { BinaryTree, BinaryTreeNode } from '../types';
-import { createBinaryTree } from '../types';
+import type { BinaryTree, BinaryTreeNode, NormalizedBinaryTree } from '../types';
+import { normalizeBinaryTree } from '../types';
 import { generateBSTInsertStates, generateBSTSearchStates } from '../algorithms';
+
+/**
+ * Helper function to create a NormalizedBinaryTree from a plain object specification
+ */
+function createBinaryTree(
+  root: BinaryTreeNode | null = null,
+  name?: string,
+  animationHints?: any[],
+  metadata?: Record<string, any>
+): NormalizedBinaryTree {
+  return normalizeBinaryTree({
+    root,
+    name,
+    animationHints,
+    _metadata: metadata
+  });
+}
 
 /**
  * BST Operation Controller
@@ -18,11 +35,11 @@ import { generateBSTInsertStates, generateBSTSearchStates } from '../algorithms'
  * - Educational operation descriptions
  * - BST property validation
  */
-export class BSTOperationController extends OperationController<BinaryTree> {
+export class BSTOperationController extends OperationController<NormalizedBinaryTree> {
   
   constructor(initialTree: BinaryTree | null = null) {
     // Initialize with empty tree if none provided
-    const initialState = initialTree || createBinaryTree(null, "Empty BST");
+    const initialState = initialTree ? normalizeBinaryTree(initialTree) : createBinaryTree(null, "Empty BST");
     if (import.meta.env.DEV) {
       console.log('🎛️ BSTOperationController: Initialized', {
         hasInitialTree: !!initialTree,
@@ -40,7 +57,7 @@ export class BSTOperationController extends OperationController<BinaryTree> {
    * Performs a single BST operation and returns the final result state.
    * This is used for direct execution without animation steps.
    */
-  protected perform(operation: Operation, currentState: BinaryTree | null): BinaryTree | null {
+  protected perform(operation: Operation, currentState: NormalizedBinaryTree | null): NormalizedBinaryTree | null {
     if (!currentState) {
       currentState = createBinaryTree(null, "Empty BST");
     }
@@ -97,7 +114,7 @@ export class BSTOperationController extends OperationController<BinaryTree> {
    * Generates all intermediate animation states for a BST operation.
    * Each state represents one atomic step in the operation.
    */
-  protected generateStates(operation: Operation, currentState: BinaryTree | null): readonly BinaryTree[] {
+  protected generateStates(operation: Operation, currentState: NormalizedBinaryTree | null): readonly NormalizedBinaryTree[] {
     if (!currentState) {
       currentState = createBinaryTree(null, "Empty BST");
     }
@@ -362,14 +379,14 @@ export class BSTOperationController extends OperationController<BinaryTree> {
   /**
    * Steps forward to the next animation state within the current operation.
    */
-  stepForward(): BinaryTree | null {
+  stepForward(): NormalizedBinaryTree | null {
     return this.historyController.stepForward();
   }
 
   /**
    * Steps backward to the previous animation state within the current operation.
    */
-  stepBackward(): BinaryTree | null {
+  stepBackward(): NormalizedBinaryTree | null {
     return this.historyController.stepBackward();
   }
 
@@ -434,8 +451,8 @@ export class BSTOperationController extends OperationController<BinaryTree> {
    * Generates animation states for finding the minimum value.
    * Traverses left until reaching the leftmost node.
    */
-  private generateFindMinStates(currentState: BinaryTree): readonly BinaryTree[] {
-    const states: BinaryTree[] = [];
+  private generateFindMinStates(currentState: NormalizedBinaryTree): readonly NormalizedBinaryTree[] {
+    const states: NormalizedBinaryTree[] = [];
     
     if (!currentState.root) {
       // Empty tree
@@ -473,8 +490,8 @@ export class BSTOperationController extends OperationController<BinaryTree> {
    * Generates animation states for finding the maximum value.
    * Traverses right until reaching the rightmost node.
    */
-  private generateFindMaxStates(currentState: BinaryTree): readonly BinaryTree[] {
-    const states: BinaryTree[] = [];
+  private generateFindMaxStates(currentState: NormalizedBinaryTree): readonly NormalizedBinaryTree[] {
+    const states: NormalizedBinaryTree[] = [];
     
     if (!currentState.root) {
       // Empty tree

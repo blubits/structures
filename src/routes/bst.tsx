@@ -6,8 +6,7 @@ import {
   BinaryTreeVisualizer,
   BSTOperationsMenu,
   BSTOperationControls,
-  createBinaryTree,
-  createBinaryTreeNode,
+  normalizeBinaryTree,
   type BinaryTree
 } from "../renderers/BinaryTree";
 import { HistoryMenu, type HistoryOperation } from "../components/HistoryMenu";
@@ -19,7 +18,7 @@ import {
   ArrowUp,
 } from "lucide-react";
 
-// Create initial BST tree declaratively
+// Create initial BST tree declaratively using plain object syntax
 const createInitialBST = (): BinaryTree => {
   // Build tree structure: 
   //       10
@@ -27,21 +26,24 @@ const createInitialBST = (): BinaryTree => {
   //    5      15
   //   / \    /  \
   //  3   7  12  18
-  const root = createBinaryTreeNode(
-    10,
-    createBinaryTreeNode(
-      5,
-      createBinaryTreeNode(3),
-      createBinaryTreeNode(7)
-    ),
-    createBinaryTreeNode(
-      15,
-      createBinaryTreeNode(12),
-      createBinaryTreeNode(18)
-    )
-  );
+  const bstSpec: BinaryTree = {
+    root: {
+      value: 10,
+      left: {
+        value: 5,
+        left: { value: 3, left: null, right: null },
+        right: { value: 7, left: null, right: null }
+      },
+      right: {
+        value: 15,
+        left: { value: 12, left: null, right: null },
+        right: { value: 18, left: null, right: null }
+      }
+    },
+    name: "Sample BST"
+  };
   
-  return createBinaryTree(root, "Sample BST");
+  return normalizeBinaryTree(bstSpec);
 };
 
 export const Route = createFileRoute('/bst')({
@@ -78,7 +80,6 @@ function BSTPageContent() {
         stateName: currentState?.name,
         hasRoot: !!currentState?.root,
         rootValue: currentState?.root?.value,
-        nodeCount: currentState?.nodeCount,
         isExecuting
       });
     }

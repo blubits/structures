@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useMemo } from "react";
 import { useTheme } from "../../../components/ThemeProvider";
-import type { BinaryTree } from "../types";
+import type { BinaryTree, NormalizedBinaryTree } from "../types";
+import { normalizeBinaryTree, reconcileBinaryTree } from "../types";
 import { renderBinaryTree } from "./renderer.js";
 import { registerBinaryTreeAnimations } from "./animations.js";
 import { arrayEqual } from "../types";
@@ -12,17 +13,20 @@ interface BinaryTreeVisualizerProps {
   state: BinaryTree;
   animationSpeed?: 'slow' | 'normal' | 'fast';
   disableResize?: boolean; // Add prop to disable resize handling
+  enableReconciliation?: boolean; // Enable smart reconciliation for performance
 }
 
 export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
   state,
   animationSpeed = 'normal',
-  disableResize = true // Default to true since we now use CSS-based responsive design
+  disableResize = true, // Default to true since we now use CSS-based responsive design
+  enableReconciliation = true // Enable reconciliation by default for better performance
 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isInitialized = useRef(false);
   const renderCount = useRef(0);
+  const prevTreeRef = useRef<NormalizedBinaryTree | null>(null);
   const prevVisualStateRef = useRef<{
     tree: any;
     animationSpeed: 'slow' | 'normal' | 'fast';
@@ -45,27 +49,68 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
   // Track render count for debugging
   renderCount.current++;
 
+  // Process the tree state with optional reconciliation for efficiency
+  const processedTree = useMemo(() => {
+    if (import.meta.env.DEV) {
+      console.log('🔄 BinaryTreeVisualizer: Processing tree state', {
+        renderCount: renderCount.current,
+        hasState: !!state,
+        enableReconciliation,
+        prevTree: prevTreeRef.current?.name,
+        newName: state?.name,
+      });
+    }
+
+    let normalizedTree: NormalizedBinaryTree;
+
+    if (enableReconciliation) {
+      // Use reconciliation to preserve node identities where possible
+      normalizedTree = reconcileBinaryTree(prevTreeRef.current, state);
+      prevTreeRef.current = normalizedTree;
+
+      if (import.meta.env.DEV) {
+        console.log('🔄 BinaryTreeVisualizer: Reconciliation complete', {
+          hasRoot: !!normalizedTree.root,
+          rootValue: normalizedTree.root?.value,
+          rootId: normalizedTree.root?.id,
+          animationHintsCount: normalizedTree.animationHints?.length || 0,
+        });
+      }
+    } else {
+      // Simple normalization without reconciliation
+      normalizedTree = normalizeBinaryTree(state);
+
+      if (import.meta.env.DEV) {
+        console.log('🔄 BinaryTreeVisualizer: Normalization complete', {
+          hasRoot: !!normalizedTree.root,
+          rootValue: normalizedTree.root?.value,
+          animationHintsCount: normalizedTree.animationHints?.length || 0,
+        });
+      }
+    }
+
+    return normalizedTree;
+  }, [state, enableReconciliation]);
+
   // Create visual state for the renderer with deep comparison for state object
   const visualState = useMemo(() => {
     if (import.meta.env.DEV) {
       console.log('🎨 BinaryTreeVisualizer: Creating visual state', {
         renderCount: renderCount.current,
         hasState: !!state,
-        hasRoot: !!state?.root,
-        stateName: state?.name,
-        rootValue: state?.root?.value,
-        nodeCount: state?.nodeCount,
-        height: state?.height,
-        animationHintsCount: state?.animationHints?.length || 0,
-        stateObjectId: `state-${JSON.stringify(state?.name)}`
+        hasRoot: !!processedTree?.root,
+        stateName: processedTree?.name,
+        rootValue: processedTree?.root?.value,
+        animationHintsCount: processedTree?.animationHints?.length || 0,
+        stateObjectId: `state-${JSON.stringify(processedTree?.name)}`
       });
     }
 
     const newVisualState = {
-      tree: state.root,
+      tree: processedTree.root,
       animationSpeed,
       theme: (prefersDarkMode ? 'dark' : 'light') as 'dark' | 'light',
-      animationHints: state.animationHints // Only source of animation data
+      animationHints: processedTree.animationHints // Only source of animation data
     };
 
     if (import.meta.env.DEV) {
@@ -74,11 +119,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
 
     return newVisualState;
   }, [
-    state.root, 
-    state.name, 
-    state.nodeCount, 
-    state.height, 
-    state.animationHints, 
+    processedTree, 
     animationSpeed, 
     prefersDarkMode
   ]);
@@ -117,13 +158,13 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
         if (import.meta.env.DEV) {
           console.log('🖼️ BinaryTreeVisualizer: First render, initializing...');
         }
-        renderBinaryTree(svgRef.current, containerRef.current, visualState, true);
+        renderBinaryTree(svgRef.current, visualState, true);
         isInitialized.current = true;
       } else {
         if (import.meta.env.DEV) {
           console.log('🖼️ BinaryTreeVisualizer: Re-render update...');
         }
-        renderBinaryTree(svgRef.current, containerRef.current, visualState, false);
+        renderBinaryTree(svgRef.current, visualState, false);
       }
     } catch (error) {
       console.error('Error rendering binary tree:', error);
@@ -167,13 +208,13 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
           
           // Get the current visualState at the time of resize
           const currentVisualState = {
-            tree: state.root,
+            tree: processedTree.root,
             animationSpeed,
             theme: (prefersDarkMode ? 'dark' : 'light') as 'dark' | 'light',
-            animationHints: state.animationHints
+            animationHints: processedTree.animationHints
           };
           
-          renderBinaryTree(svgRef.current, containerRef.current, currentVisualState, false);
+          renderBinaryTree(svgRef.current, currentVisualState, false);
           
           // Reconnect the observer after a brief delay
           setTimeout(() => {
@@ -197,7 +238,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
       }
       resizeObserver.disconnect();
     };
-  }, []); // Remove visualState dependency to prevent infinite loop
+  }, [processedTree]); // Use processedTree instead of visualState dependency to prevent infinite loop
 
   return (
     <div 

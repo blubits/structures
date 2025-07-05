@@ -1,5 +1,5 @@
-import type { BinaryTreeNode, BinaryTree } from '../types';
-import { createBinaryTreeNode, updateBinaryTreeNode, createBinaryTree } from '../types';
+import type { BinaryTreeNode, BinaryTree, NormalizedBinaryTree } from '../types';
+import { updateBinaryTreeNode, normalizeBinaryTree } from '../types';
 
 /**
  * BST Algorithm Implementations for the New Architecture
@@ -13,7 +13,32 @@ import { createBinaryTreeNode, updateBinaryTreeNode, createBinaryTree } from '..
  * - All states are immutable (create new instances)
  * - Animation hints embedded directly in tree state (not nodes)
  * - Educational step-by-step breakdown for learning
+ * - Uses plain object specifications for easy tree creation
  */
+
+/**
+ * Create a NormalizedBinaryTree from a plain object specification
+ */
+function createBinaryTreeFromSpec(spec: BinaryTree): NormalizedBinaryTree {
+  return normalizeBinaryTree(spec);
+}
+
+/**
+ * Helper function to create a binary tree node spec
+ */
+function createNodeSpec(
+  value: number,
+  left: any = null,
+  right: any = null,
+  state: 'default' | 'active' | 'visited' = 'default'
+): any {
+  return {
+    value,
+    left,
+    right,
+    state
+  };
+}
 
 /**
  * BST Insert Algorithm
@@ -30,34 +55,26 @@ import { createBinaryTreeNode, updateBinaryTreeNode, createBinaryTree } from '..
  * @param value - Value to insert
  * @returns Array of tree states showing the insertion process
  */
-export function generateBSTInsertStates(tree: BinaryTree, value: number): BinaryTree[] {
-  const states: BinaryTree[] = [];
+export function generateBSTInsertStates(tree: NormalizedBinaryTree, value: number): NormalizedBinaryTree[] {
+  const states: NormalizedBinaryTree[] = [];
   
   // If tree is empty, create root node
   if (!tree.root) {
-    const newRoot = createBinaryTreeNode(
-      value,
-      null,
-      null,
-      'active'
-    );
+    const newRootSpec = createNodeSpec(value, null, null, 'active');
     
-    states.push(createBinaryTree(
-      newRoot,
-      `Inserting ${value} as root`,
-      [{ type: 'appear', metadata: { targetType: 'node', targetValue: value } }]
-    ));
+    states.push(createBinaryTreeFromSpec({
+      root: newRootSpec,
+      name: `Inserting ${value} as root`,
+      animationHints: [{ type: 'appear', metadata: { targetType: 'node', targetValue: value } }]
+    }));
     
     // Final state with node in default state
-    const finalRoot = updateBinaryTreeNode(newRoot, { 
-      state: 'default'
-    });
+    const finalRootSpec = createNodeSpec(value, null, null, 'default');
     
-    states.push(createBinaryTree(
-      finalRoot,
-      `Inserted ${value} as root`,
-      undefined
-    ));
+    states.push(createBinaryTreeFromSpec({
+      root: finalRootSpec,
+      name: `Inserted ${value} as root`,
+    }));
     
     return states;
   }
@@ -66,8 +83,8 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
   const insertNode = (
     current: BinaryTreeNode,
     path: string[]
-  ): { newTree: BinaryTreeNode; states: BinaryTree[] } => {
-    const stepStates: BinaryTree[] = [];
+  ): { newTree: BinaryTreeNode; states: NormalizedBinaryTree[] } => {
+    const stepStates: NormalizedBinaryTree[] = [];
     
     // Step 1: Compare with current node (set to active)
     const compareNode = updateBinaryTreeNode(current, {
@@ -75,11 +92,10 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
     });
     
     const compareTree = updateTreeAtPath(tree.root!, path, compareNode);
-    stepStates.push(createBinaryTree(
-      compareTree,
-      `Comparing ${value} with ${current.value}`,
-      undefined // No animation hint needed - node state handles the color
-    ));
+    stepStates.push(createBinaryTreeFromSpec({
+      root: compareTree,
+      name: `Comparing ${value} with ${current.value}`,
+    }));
     
     // Step 2: Make decision and traverse
     if (value < current.value) {
@@ -99,44 +115,38 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
         } 
       }] : undefined;
       
-      stepStates.push(createBinaryTree(
-        leftTraverseTree,
-        `${value} < ${current.value}, going left`,
+      stepStates.push(createBinaryTreeFromSpec({
+        root: leftTraverseTree,
+        name: `${value} < ${current.value}, going left`,
         animationHints
-      ));
+      }));
       
       if (current.left === null) {
         // Insert here
-        const newNode = createBinaryTreeNode(
-          value,
-          null,
-          null,
-          'active'
-        );
+        const newNodeSpec = createNodeSpec(value, null, null, 'active');
         
         const insertedNode = updateBinaryTreeNode(leftTraverseNode, {
-          left: newNode,
+          left: normalizeBinaryTree({ root: newNodeSpec }).root,
           state: 'visited' // Keep parent as visited
         });
         
         const insertedTree = updateTreeAtPath(tree.root!, path, insertedNode);
-        stepStates.push(createBinaryTree(
-          insertedTree,
-          `Inserting ${value} as left child of ${current.value}`,
-          [{ type: 'appear', metadata: { targetType: 'node', targetValue: value } }]
-        ));
+        stepStates.push(createBinaryTreeFromSpec({
+          root: insertedTree,
+          name: `Inserting ${value} as left child of ${current.value}`,
+          animationHints: [{ type: 'appear', metadata: { targetType: 'node', targetValue: value } }]
+        }));
         
         // Mark new node as visited for completion
         const completedNode = updateBinaryTreeNode(insertedNode, {
-          left: updateBinaryTreeNode(newNode, { state: 'visited' })
+          left: updateBinaryTreeNode(insertedNode.left!, { state: 'visited' })
         });
         
         const completedTree = updateTreeAtPath(tree.root!, path, completedNode);
-        stepStates.push(createBinaryTree(
-          completedTree,
-          `Inserted ${value}`,
-          undefined
-        ));
+        stepStates.push(createBinaryTreeFromSpec({
+          root: completedTree,
+          name: `Inserted ${value}`,
+        }));
         
         return { newTree: completedTree, states: stepStates };
       } else {
@@ -156,11 +166,11 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
           } 
         }] : undefined;
         
-        const updatedTraverseStep = createBinaryTree(
-          updateTreeAtPath(tree.root!, path, visitedNode),
-          `${value} < ${current.value}, going left`,
-          updatedAnimationHints
-        );
+        const updatedTraverseStep = createBinaryTreeFromSpec({
+          root: updateTreeAtPath(tree.root!, path, visitedNode),
+          name: `${value} < ${current.value}, going left`,
+          animationHints: updatedAnimationHints
+        });
         
         // Merge states and ensure ALL nodes in the current path remain visited
         const baseStates = [...stepStates.slice(0, -1), updatedTraverseStep];
@@ -170,7 +180,11 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
           if (childState.root) {
             // Mark the entire path from root to current node as visited
             const rootWithVisitedPath = markPathAsVisited(childState.root, path);
-            return createBinaryTree(rootWithVisitedPath, childState.name, childState.animationHints);
+            return createBinaryTreeFromSpec({
+              root: rootWithVisitedPath,
+              name: childState.name,
+              animationHints: childState.animationHints
+            });
           }
           return childState;
         });
@@ -199,44 +213,38 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
         } 
       }] : undefined;
       
-      stepStates.push(createBinaryTree(
-        rightTraverseTree,
-        `${value} > ${current.value}, going right`,
+      stepStates.push(createBinaryTreeFromSpec({
+        root: rightTraverseTree,
+        name: `${value} > ${current.value}, going right`,
         animationHints
-      ));
+      }));
       
       if (current.right === null) {
         // Insert here
-        const newNode = createBinaryTreeNode(
-          value,
-          null,
-          null,
-          'active'
-        );
+        const newNodeSpec = createNodeSpec(value, null, null, 'active');
         
         const insertedNode = updateBinaryTreeNode(rightTraverseNode, {
-          right: newNode,
+          right: normalizeBinaryTree({ root: newNodeSpec }).root,
           state: 'visited' // Keep parent as visited
         });
         
         const insertedTree = updateTreeAtPath(tree.root!, path, insertedNode);
-        stepStates.push(createBinaryTree(
-          insertedTree,
-          `Inserting ${value} as right child of ${current.value}`,
-          [{ type: 'appear', metadata: { targetType: 'node', targetValue: value } }]
-        ));
+        stepStates.push(createBinaryTreeFromSpec({
+          root: insertedTree,
+          name: `Inserting ${value} as right child of ${current.value}`,
+          animationHints: [{ type: 'appear', metadata: { targetType: 'node', targetValue: value } }]
+        }));
         
         // Mark new node as visited for completion
         const completedNode = updateBinaryTreeNode(insertedNode, {
-          right: updateBinaryTreeNode(newNode, { state: 'visited' })
+          right: updateBinaryTreeNode(insertedNode.right!, { state: 'visited' })
         });
         
         const completedTree = updateTreeAtPath(tree.root!, path, completedNode);
-        stepStates.push(createBinaryTree(
-          completedTree,
-          `Inserted ${value}`,
-          undefined
-        ));
+        stepStates.push(createBinaryTreeFromSpec({
+          root: completedTree,
+          name: `Inserted ${value}`,
+        }));
         
         return { newTree: completedTree, states: stepStates };
       } else {
@@ -256,11 +264,11 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
           } 
         }] : undefined;
         
-        const updatedTraverseStep = createBinaryTree(
-          updateTreeAtPath(tree.root!, path, visitedNode),
-          `${value} > ${current.value}, going right`,
-          updatedAnimationHints
-        );
+        const updatedTraverseStep = createBinaryTreeFromSpec({
+          root: updateTreeAtPath(tree.root!, path, visitedNode),
+          name: `${value} > ${current.value}, going right`,
+          animationHints: updatedAnimationHints
+        });
         
         // Merge states and ensure ALL nodes in the current path remain visited
         const baseStates = [...stepStates.slice(0, -1), updatedTraverseStep];
@@ -270,7 +278,11 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
           if (childState.root) {
             // Mark the entire path from root to current node as visited
             const rootWithVisitedPath = markPathAsVisited(childState.root, path);
-            return createBinaryTree(rootWithVisitedPath, childState.name, childState.animationHints);
+            return createBinaryTreeFromSpec({
+              root: rootWithVisitedPath,
+              name: childState.name,
+              animationHints: childState.animationHints
+            });
           }
           return childState;
         });
@@ -289,11 +301,11 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
       });
       
       const existsTree = updateTreeAtPath(tree.root!, path, existsNode);
-      stepStates.push(createBinaryTree(
-        existsTree,
-        `${value} already exists, not inserting`,
-        [{ type: 'shake', metadata: { targetType: 'node', targetValue: value } }]
-      ));
+      stepStates.push(createBinaryTreeFromSpec({
+        root: existsTree,
+        name: `${value} already exists, not inserting`,
+        animationHints: [{ type: 'shake', metadata: { targetType: 'node', targetValue: value } }]
+      }));
       
       // Reset to original state
       const resetNode = updateBinaryTreeNode(existsNode, {
@@ -301,11 +313,10 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
       });
       
       const resetTree = updateTreeAtPath(tree.root!, path, resetNode);
-      stepStates.push(createBinaryTree(
-        resetTree,
-        `No changes made`,
-        undefined
-      ));
+      stepStates.push(createBinaryTreeFromSpec({
+        root: resetTree,
+        name: `No changes made`,
+      }));
       
       return { newTree: resetTree, states: stepStates };
     }
@@ -318,11 +329,10 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
   const lastState = finalCleanupStates[finalCleanupStates.length - 1];
   if (lastState && lastState.root) {
     const cleanRoot = resetAllNodesToDefault(lastState.root);
-    finalCleanupStates.push(createBinaryTree(
-      cleanRoot,
-      `Insert complete - tree ready`,
-      undefined
-    ));
+    finalCleanupStates.push(createBinaryTreeFromSpec({
+      root: cleanRoot,
+      name: `Insert complete - tree ready`,
+    }));
   }
   
   return finalCleanupStates;
@@ -334,28 +344,28 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
  * Generates a sequence of tree states showing the step-by-step process
  * of searching for a value in a Binary Search Tree.
  */
-export function generateBSTSearchStates(tree: BinaryTree, value: number): BinaryTree[] {
+export function generateBSTSearchStates(tree: NormalizedBinaryTree, value: number): NormalizedBinaryTree[] {
   if (!tree.root) {
-    const emptyState = createBinaryTree(
-      null,
-      `Tree is empty, ${value} not found`,
-      [{ type: 'shake', metadata: { targetType: 'tree' } }]
-    );
+    const emptyState = createBinaryTreeFromSpec({
+      root: null,
+      name: `Tree is empty, ${value} not found`,
+      animationHints: [{ type: 'shake', metadata: { targetType: 'tree' } }]
+    });
     return [emptyState];
   }
   
-  const searchNode = (current: BinaryTreeNode | null, path: string[]): BinaryTree[] => {
+  const searchNode = (current: BinaryTreeNode | null, path: string[]): NormalizedBinaryTree[] => {
     if (!current) {
       // Value not found
-      const notFoundState = createBinaryTree(
-        tree.root,
-        `${value} not found`,
-        [{ type: 'shake', metadata: { targetType: 'tree' } }]
-      );
+      const notFoundState = createBinaryTreeFromSpec({
+        root: tree.root,
+        name: `${value} not found`,
+        animationHints: [{ type: 'shake', metadata: { targetType: 'tree' } }]
+      });
       return [notFoundState];
     }
     
-    const currentStates: BinaryTree[] = [];
+    const currentStates: NormalizedBinaryTree[] = [];
     
     // Step 1: Compare with current node (set to active)
     const compareNode = updateBinaryTreeNode(current, {
@@ -363,11 +373,10 @@ export function generateBSTSearchStates(tree: BinaryTree, value: number): Binary
     });
     
     const compareTree = updateTreeAtPath(tree.root!, path, compareNode);
-    currentStates.push(createBinaryTree(
-      compareTree,
-      `Comparing ${value} with ${current.value}`,
-      undefined // No animation hint needed - node state handles the color
-    ));
+    currentStates.push(createBinaryTreeFromSpec({
+      root: compareTree,
+      name: `Comparing ${value} with ${current.value}`,
+    }));
     
     if (value === current.value) {
       // Found!
@@ -376,11 +385,11 @@ export function generateBSTSearchStates(tree: BinaryTree, value: number): Binary
       });
       
       const foundTree = updateTreeAtPath(tree.root!, path, foundNode);
-      currentStates.push(createBinaryTree(
-        foundTree,
-        `Found ${value}!`,
-        [{ type: 'found', metadata: { targetType: 'node', targetValue: value } }]
-      ));
+      currentStates.push(createBinaryTreeFromSpec({
+        root: foundTree,
+        name: `Found ${value}!`,
+        animationHints: [{ type: 'found', metadata: { targetType: 'node', targetValue: value } }]
+      }));
       
       return currentStates;
     } else if (value < current.value) {
@@ -400,11 +409,11 @@ export function generateBSTSearchStates(tree: BinaryTree, value: number): Binary
         } 
       }] : undefined;
       
-      currentStates.push(createBinaryTree(
-        visitedTree,
-        `${value} < ${current.value}, going left`,
+      currentStates.push(createBinaryTreeFromSpec({
+        root: visitedTree,
+        name: `${value} < ${current.value}, going left`,
         animationHints
-      ));
+      }));
       
       // Recursively search left subtree
       const childResults = searchNode(current.left, [...path, 'left']);
@@ -428,11 +437,11 @@ export function generateBSTSearchStates(tree: BinaryTree, value: number): Binary
         } 
       }] : undefined;
       
-      currentStates.push(createBinaryTree(
-        visitedTree,
-        `${value} > ${current.value}, going right`,
+      currentStates.push(createBinaryTreeFromSpec({
+        root: visitedTree,
+        name: `${value} > ${current.value}, going right`,
         animationHints
-      ));
+      }));
       
       // Recursively search right subtree
       const childResults = searchNode(current.right, [...path, 'right']);
@@ -448,12 +457,12 @@ export function generateBSTSearchStates(tree: BinaryTree, value: number): Binary
   if (searchResult.length > 0) {
     const lastState = searchResult[searchResult.length - 1];
     if (lastState && lastState.root) {
+      // lastState.root is already a BinaryTreeNode from NormalizedBinaryTree
       const cleanRoot = resetAllNodesToDefault(lastState.root);
-      searchResult.push(createBinaryTree(
-        cleanRoot,
-        `Search complete - tree ready`,
-        undefined
-      ));
+      searchResult.push(createBinaryTreeFromSpec({
+        root: cleanRoot,
+        name: `Search complete - tree ready`,
+      }));
     }
   }
   
@@ -485,9 +494,6 @@ function markPathAsVisited(root: BinaryTreeNode, pathToMark: string[]): BinaryTr
   return updateBinaryTreeNode(root, { state: 'visited' });
 }
 
-/**
- * Helper function to get a node at a specific path in the tree
- */
 /**
  * Helper function to reset all nodes in a tree to default state
  */

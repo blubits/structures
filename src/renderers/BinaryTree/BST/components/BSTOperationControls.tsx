@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { ChevronDown, ChevronRight, Bug } from "lucide-react";
 import type { BSTOperationController } from "../BSTOperationController";
 import type { BinaryTree } from "../../types";
+import { countNodes, normalizeBinaryTree } from "../../types";
 
 interface BSTOperationControlsProps {
   controller: BSTOperationController;
@@ -240,7 +241,7 @@ export function BSTOperationControls({
                   {currentOperationStates.length > 0 && currentAnimationIndex >= 0 ? (
                     <>
                       <div>Current State: {currentOperationStates[currentAnimationIndex]?.name || 'Unnamed'}</div>
-                      <div>Node Count: {currentOperationStates[currentAnimationIndex]?.nodeCount || 0}</div>
+                      <div>Node Count: {countNodes(normalizeBinaryTree(currentOperationStates[currentAnimationIndex]).root) || 0}</div>
                       {currentAnimationIndex > 0 && (
                         <div className="mt-1 pt-1 border-t border-white/10">
                           <div className="text-gray-400">Previous: {currentOperationStates[currentAnimationIndex - 1]?.name || 'Unnamed'}</div>

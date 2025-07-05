@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, ChevronUp, Bug, Code, GitBranch } from 'lucide-react';
 import type { BinaryTree, BinaryTreeNode } from '../renderers/BinaryTree/types';
+import { countNodes, normalizeBinaryTree } from '../renderers/BinaryTree/types';
 import type { OperationGroup } from '../lib/core/types';
 
 interface DebugPanelProps {
@@ -101,7 +102,7 @@ export function DebugPanel({
     return { nodes, maxDepth, totalNodes: nodes.length, isValidBST };
   };
 
-  const treeAnalysis = currentState?.root ? analyzeTree(currentState.root) : null;
+  const treeAnalysis = currentState?.root ? analyzeTree(normalizeBinaryTree(currentState).root!) : null;
 
   const formatTimestamp = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString();
@@ -125,8 +126,7 @@ export function DebugPanel({
     };
 
     return {
-      root: cleanNode(state.root),
-      nodeCount: state.nodeCount,
+      root: cleanNode(normalizeBinaryTree(state).root),
       name: state.name,
       animationHints: state.animationHints,
       _metadata: state._metadata
@@ -206,7 +206,7 @@ export function DebugPanel({
                         </div>
                         <div>
                           <span className="text-gray-600 dark:text-gray-400 text-xs">Nodes:</span>
-                          <div className="font-mono text-xs">{currentState.nodeCount}</div>
+                          <div className="font-mono text-xs">{countNodes(normalizeBinaryTree(currentState).root)}</div>
                         </div>
                         {treeAnalysis && (
                           <>
@@ -339,7 +339,7 @@ export function DebugPanel({
                                 >
                                   <div className="flex justify-between items-start">
                                     <span>Step {stepIndex + 1}: {state.name || 'Unnamed'}</span>
-                                    <span className="text-gray-500">({state.nodeCount} nodes)</span>
+                                    <span className="text-gray-500">({countNodes(normalizeBinaryTree(state).root)} nodes)</span>
                                   </div>
                                   {state.animationHints && state.animationHints.length > 0 && (
                                     <div className="mt-1 text-gray-500 text-xs">

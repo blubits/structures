@@ -91,7 +91,6 @@ function calculateTreeLayout(root: BinaryTreeNode | null): Map<number, {x: numbe
 
 // Store zoom behavior globally to maintain state between renders
 let zoomBehavior: d3.ZoomBehavior<SVGSVGElement, unknown> | null = null;
-let isZoomInitialized = false;
 
 /**
  * Render the binary tree with D3 including zoom and pan functionality
@@ -99,7 +98,6 @@ let isZoomInitialized = false;
  */
 export function renderBinaryTree(
   svgElement: SVGSVGElement, 
-  containerElement: HTMLElement, 
   visualState: BinaryTreeVisualState,
   isFirstRender: boolean = false
 ): void {
@@ -125,8 +123,7 @@ export function renderBinaryTree(
     const svg = d3.select(svgElement);
     svg.selectAll('*').remove();
     
-    // Reset zoom initialization when tree is cleared
-    isZoomInitialized = false;
+    // Reset zoom when tree is cleared
     zoomBehavior = null;
     
     // Add a helpful message for empty tree using native DOM manipulation
@@ -229,7 +226,6 @@ export function renderBinaryTree(
       });
     
     svg.call(zoomBehavior);
-    isZoomInitialized = true;
   }
 
   // Get or create persistent groups for links and nodes (don't clear them)
@@ -500,73 +496,6 @@ function getAnimationDuration(speed: 'slow' | 'normal' | 'fast'): number {
     case 'fast': return 300;
     default: return 600;
   }
-}
-
-/**
- * Initialize zoom behavior for the SVG
- */
-function initializeZoomBehavior(
-  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-  mainGroup: d3.Selection<SVGGElement, unknown, null, undefined>,
-  contentWidth: number,
-  contentHeight: number,
-  containerWidth: number,
-  containerHeight: number,
-  bounds: { minX: number; maxX: number; minY: number; maxY: number }
-): void {
-  zoomBehavior = d3.zoom<SVGSVGElement, unknown>()
-    .scaleExtent([CONFIG.zoom.minScale, CONFIG.zoom.maxScale])
-    .on('zoom', (event) => {
-      mainGroup.attr('transform', event.transform);
-    });
-
-  svg.call(zoomBehavior);
-
-  // Double-click to reset zoom
-  svg.on('dblclick.zoom', () => {
-    const scaleX = containerWidth / contentWidth;
-    const scaleY = containerHeight / contentHeight;
-    const fitScale = Math.min(scaleX, scaleY, 1) * CONFIG.zoom.initialScaleFactor;
-    
-    const centerX = containerWidth / 2 - (contentWidth * fitScale) / 2;
-    const centerY = containerHeight / 2 - (contentHeight * fitScale) / 2;
-    
-    const resetTransform = d3.zoomIdentity
-      .translate(centerX, centerY)
-      .scale(fitScale)
-      .translate(-bounds.minX, -bounds.minY);
-    
-    svg.transition()
-      .duration(750)
-      .call(zoomBehavior!.transform, resetTransform);
-  });
-}
-
-/**
- * Set initial zoom for the tree view
- */
-function setInitialZoom(
-  svg: d3.Selection<SVGSVGElement, unknown, null, undefined>,
-  zoomBehavior: d3.ZoomBehavior<SVGSVGElement, unknown>,
-  contentWidth: number,
-  contentHeight: number,
-  containerWidth: number,
-  containerHeight: number,
-  bounds: { minX: number; maxX: number; minY: number; maxY: number }
-): void {
-  const scaleX = containerWidth / contentWidth;
-  const scaleY = containerHeight / contentHeight;
-  const initialScale = Math.min(scaleX, scaleY, 1) * CONFIG.zoom.initialScaleFactor;
-  
-  const centerX = containerWidth / 2 - (contentWidth * initialScale) / 2;
-  const centerY = containerHeight / 2 - (contentHeight * initialScale) / 2;
-  
-  const initialTransform = d3.zoomIdentity
-    .translate(centerX, centerY)
-    .scale(initialScale)
-    .translate(-bounds.minX, -bounds.minY);
-  
-  svg.call(zoomBehavior.transform, initialTransform);
 }
 
 /**
