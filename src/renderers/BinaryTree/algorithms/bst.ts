@@ -1,6 +1,7 @@
 import type { BinaryTreeNode, BinaryTree, NormalizedBinaryTree, BinaryTreeNodeSpec } from '../types';
 import type { AnimationHint } from '../../../lib/core/types';
 import { updateBinaryTreeNode, normalizeBinaryTree } from '../types';
+import { createTraverseDownHint } from '../components/animations';
 
 /**
  * BST Algorithm Implementations with Smart State Builder
@@ -67,10 +68,9 @@ class BinaryTreeStateBuilder {
 
     // Only add traverse state with animation if child exists
     if (currentNode.left) {
-      const animationHints: AnimationHint[] = [{ 
-        type: 'traverse-down', 
-        metadata: { sourceValue: currentNode.value, targetValue: currentNode.left.value } 
-      }];
+      const animationHints: AnimationHint[] = [
+        createTraverseDownHint(currentNode.value, currentNode.left.value)
+      ];
 
       this.states.push(this.createTreeFromSpec({
         root: this.currentTree.root,
@@ -94,10 +94,9 @@ class BinaryTreeStateBuilder {
 
     // Only add traverse state with animation if child exists
     if (currentNode.right) {
-      const animationHints: AnimationHint[] = [{ 
-        type: 'traverse-down', 
-        metadata: { sourceValue: currentNode.value, targetValue: currentNode.right.value } 
-      }];
+      const animationHints: AnimationHint[] = [
+        createTraverseDownHint(currentNode.value, currentNode.right.value)
+      ];
 
       this.states.push(this.createTreeFromSpec({
         root: this.currentTree.root,

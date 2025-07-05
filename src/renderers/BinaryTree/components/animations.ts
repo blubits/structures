@@ -17,6 +17,30 @@ import * as d3 from 'd3';
 import { BINARY_TREE_COLORS } from '../config.colors';
 
 // =============================================================================
+// ANIMATION HINT CREATORS
+// =============================================================================
+
+/**
+ * Create a traverse-down animation hint
+ * 
+ * @param sourceValue - The value of the source node
+ * @param targetValue - The value of the target node
+ * @param duration - Optional duration in milliseconds (default: 600)
+ * @returns AnimationHint for traverse-down animation
+ */
+export function createTraverseDownHint(
+  sourceValue: number,
+  targetValue: number,
+  duration?: number
+): AnimationHint {
+  return {
+    type: 'traverse-down',
+    metadata: { sourceValue, targetValue },
+    duration: duration || 600
+  };
+}
+
+// =============================================================================
 // BINARY TREE ANIMATION FUNCTIONS
 // =============================================================================
 
