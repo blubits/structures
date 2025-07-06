@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useBST } from "@/renderers/BinaryTree/BST/BSTProvider";
 import { createOperation } from "@/lib/core/types";
-import { generateBSTInsertStates, generateBSTSearchStates, generateBSTFindMinStates, generateBSTFindMaxStates } from "@/renderers/BinaryTree/algorithms";
+import { generateBSTInsertStates, generateBSTSearchStates, generateBSTFindMinStates, generateBSTFindMaxStates } from "@/renderers/BinaryTree/BST/algorithms";
 
 interface BSTOperationsMenuProps {
   isExecuting: boolean;

@@ -9,9 +9,6 @@
 // Core types
 export * from './types';
 
-// Generic algorithms (shared across all binary tree types)
-export * from './algorithms';
-
 // Configuration
 export * from './config';
 
