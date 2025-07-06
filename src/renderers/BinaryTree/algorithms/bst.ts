@@ -170,7 +170,7 @@ class BinaryTreeStateBuilder {
       value,
       left: null,
       right: null,
-      state: 'active'
+      state: 'default' // Changed from 'active' to 'default'
     };
 
     // Create the new node
@@ -203,7 +203,7 @@ class BinaryTreeStateBuilder {
       value,
       left: null,
       right: null,
-      state: 'active'
+      state: 'default' // Changed from 'active' to 'default'
     };
 
     // Create the new node
