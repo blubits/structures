@@ -1,7 +1,7 @@
-import type { BinaryTreeNode, BinaryTree, NormalizedBinaryTree, BinaryTreeNodeSpec } from '../types';
-import type { AnimationHint } from '../../../lib/core/types';
-import { updateBinaryTreeNode, normalizeBinaryTree } from '../types';
-import { traverseDown } from '../components/animations';
+import type { BinaryTreeNode, BinaryTree, NormalizedBinaryTree, BinaryTreeNodeSpec } from '@/renderers/BinaryTree/types';
+import type { AnimationHint } from '@/lib/core/types';
+import { updateBinaryTreeNode, normalizeBinaryTree } from '@/renderers/BinaryTree/types';
+import { traverseDown } from '@/renderers/BinaryTree/components/animations';
 
 /**
  * BST Algorithm Implementations with Smart State Builder

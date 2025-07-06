@@ -6,15 +6,15 @@
  * how binary tree animations work within the generic framework.
  */
 
-import { AnimationController, createSimpleHintProcessor, createSimpleElementAnimationExecutor } from '../../../lib/core/AnimationController';
-import { defineAnimationHint, type AnimationHintDescriptor } from '../../../lib/core/AnimationHintDescriptor';
+import { AnimationController, createSimpleHintProcessor, createSimpleElementAnimationExecutor } from '@/lib/core/AnimationController';
+import { defineAnimationHint, type AnimationHintDescriptor } from '@/lib/core/AnimationHintDescriptor';
 import type {
   VisualizationAnimationConfig,
   GenericAnimationContext
-} from '../../../lib/core/AnimationController';
-import type { AnimationHint } from '../../../lib/core/types';
+} from '@/lib/core/AnimationController';
+import type { AnimationHint } from '@/lib/core/types';
 import * as d3 from 'd3';
-import { BINARY_TREE_COLORS } from '../config.colors';
+import { BINARY_TREE_COLORS } from '@/renderers/BinaryTree/config.colors';
 
 // =============================================================================
 // ANIMATION HINT DESCRIPTOR SYSTEM

@@ -1,11 +1,11 @@
 // Enhanced BinaryTreeVisualizer that uses the new reconciliation system
 
 import React, { useRef, useEffect, useMemo } from "react";
-import { useTheme } from "../../../components/ThemeProvider";
-import type { BinaryTree, NormalizedBinaryTree } from "../types";
-import { renderBinaryTree } from "./renderer.js";
-import { registerBinaryTreeAnimations } from "./animations.js";
-import { reconcileBinaryTree } from "../types";
+import { useTheme } from "@/components/ThemeProvider";
+import type { BinaryTree, NormalizedBinaryTree } from "@/renderers/BinaryTree/types";
+import { renderBinaryTree } from "@/renderers/BinaryTree/components/renderer";
+import { registerBinaryTreeAnimations } from "@/renderers/BinaryTree/components/animations";
+import { reconcileBinaryTree } from "@/renderers/BinaryTree/types";
 
 // Initialize animations once when the module loads
 let animationsInitialized = false;

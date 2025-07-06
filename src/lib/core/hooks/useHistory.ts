@@ -1,6 +1,6 @@
 import { useMemo, useCallback, useSyncExternalStore } from 'react';
-import type { DataStructureState, Operation } from '../types';
-import type { OperationController } from '../OperationController';
+import type { DataStructureState, Operation } from '@/lib/core/types';
+import type { OperationController } from '@/lib/core/OperationController';
 
 /**
  * Hook return type for history controllers.

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Popover, PopoverTrigger, PopoverContent } from "../../../../components/ui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { 
   Plus, 
   Search, 
@@ -8,10 +8,10 @@ import {
   Trash2,
   Menu
 } from "lucide-react";
-import { useBST } from "../BSTProvider";
-import { createOperation } from "../../../../lib/core/types";
-import { generateBSTInsertStates, generateBSTSearchStates, generateBSTFindMinStates, generateBSTFindMaxStates } from "../../algorithms";
-import type { NormalizedBinaryTree } from "../../types";
+import { useBST } from "@/renderers/BinaryTree/BST/BSTProvider";
+import { createOperation } from "@/lib/core/types";
+import { generateBSTInsertStates, generateBSTSearchStates, generateBSTFindMinStates, generateBSTFindMaxStates } from "@/renderers/BinaryTree/algorithms";
+import type { NormalizedBinaryTree } from "@/renderers/BinaryTree/types";
 
 interface BSTOperationsMenuProps {
   isExecuting: boolean;

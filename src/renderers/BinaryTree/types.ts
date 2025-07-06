@@ -1,4 +1,4 @@
-import type { DataStructureState, AnimationHint } from '../../lib/core/types';
+import type { DataStructureState, AnimationHint } from '@/lib/core/types';
 
 /**
  * Represents a node in a binary tree.

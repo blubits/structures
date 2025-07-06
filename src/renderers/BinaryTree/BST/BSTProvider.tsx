@@ -1,9 +1,9 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import { HistoryController } from '../../../lib/core/History';
-import { normalizeBinaryTree } from '../types';
-import type { BinaryTree, NormalizedBinaryTree } from '../types';
-import { registerBinaryTreeAnimations } from '../components/animations';
+import { HistoryController } from '@/lib/core/History';
+import { normalizeBinaryTree } from '@/renderers/BinaryTree/types';
+import type { BinaryTree, NormalizedBinaryTree } from '@/renderers/BinaryTree/types';
+import { registerBinaryTreeAnimations } from '@/renderers/BinaryTree/components/animations';
 
 // Register animations on module load
 registerBinaryTreeAnimations();
