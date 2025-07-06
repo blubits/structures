@@ -306,9 +306,12 @@ export function renderBinaryTree(
       linkElement.setAttribute('data-target-value', linkData.targetValue.toString());
     });
 
+  // Track previous node states by id or value
+  const prevNodeStates: Map<string | number, string> = (renderBinaryTree as any)._prevNodeStates || new Map();
+
   // Render nodes with D3 join pattern using node IDs for better reconciliation
   const nodeElements = nodeGroup.selectAll('g.node')
-    .data(nodes, (d: any) => (d as NodeData).id || (d as NodeData).value) // Use ID first, fallback to value
+    .data(nodes, (d: any) => (d as NodeData).id || (d as NodeData).value)
     .join(
       enter => {
         const nodeGroup = enter.append('g')
@@ -316,7 +319,6 @@ export function renderBinaryTree(
           .attr('transform', (d: any) => `translate(${(d as NodeData).x}, ${(d as NodeData).y})`)
           .style('cursor', 'pointer');
 
-        // Add circles
         nodeGroup.append('circle')
           .attr('r', CONFIG.nodeRadius)
           .attr('fill', (d: any) => getNodeFillColor((d as NodeData).state, colors))
@@ -327,7 +329,6 @@ export function renderBinaryTree(
           .attr('stroke-width', 2)
           .style('opacity', 1);
 
-        // Add text
         nodeGroup.append('text')
           .attr('text-anchor', 'middle')
           .attr('dy', '0.35em')
@@ -339,33 +340,39 @@ export function renderBinaryTree(
         return nodeGroup;
       },
       update => {
-        // Update positions and states with smooth transitions
         const updatedNodes = update
           .call(update => isFirstRender ? update.attr('transform', (d: any) => `translate(${(d as NodeData).x}, ${(d as NodeData).y})`) : update.transition()
             .duration(animationDuration / 2)
             .attr('transform', (d: any) => `translate(${(d as NodeData).x}, ${(d as NodeData).y})`)
           );
 
-        // Update circle colors based on state changes
         updatedNodes.select('circle')
-          .call(circles => {
-            if (isFirstRender) {
-              circles
-                .attr('fill', (d: any) => getNodeFillColor((d as NodeData).state, colors))
-                .attr('stroke', (d: any) => {
-                  const state = (d as NodeData).state as 'default' | 'active' | 'visited';
-                  return colors.node.border[state] || colors.node.border.default;
-                });
-            } else {
-              circles.transition()
-                .duration(animationDuration / 2)
-                .attr('fill', (d: any) => getNodeFillColor((d as NodeData).state, colors))
-                .attr('stroke', (d: any) => {
-                  const state = (d as NodeData).state as 'default' | 'active' | 'visited';
-                  return colors.node.border[state] || colors.node.border.default;
-                });
-            }
+          .each(function(d: any) {
+            // Set fill/stroke to previous state before transition
+            const node = d as NodeData;
+            const key = node.id || node.value;
+            const prevState = prevNodeStates.get(key) || node.state;
+            d3.select(this)
+              .attr('fill', getNodeFillColor(prevState, colors))
+              .attr('stroke', () => {
+                const state = prevState as 'default' | 'active' | 'visited';
+                return colors.node.border[state] || colors.node.border.default;
+              });
+          })
+          .transition()
+          .duration(animationDuration / 2)
+          .attr('fill', (d: any) => getNodeFillColor((d as NodeData).state, colors))
+          .attr('stroke', (d: any) => {
+            const state = (d as NodeData).state as 'default' | 'active' | 'visited';
+            return colors.node.border[state] || colors.node.border.default;
           });
+
+        // After transition, update prevNodeStates for next render
+        updatedNodes.select('circle').each(function(d: any) {
+          const node = d as NodeData;
+          const key = node.id || node.value;
+          prevNodeStates.set(key, node.state);
+        });
 
         return updatedNodes;
       },
@@ -488,6 +495,9 @@ export function renderBinaryTree(
       elementProvider
     );
   }
+
+  // Store prevNodeStates for next render
+  (renderBinaryTree as any)._prevNodeStates = prevNodeStates;
 }
 
 /**
