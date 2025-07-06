@@ -1,10 +1,9 @@
 import React, { useRef, useEffect, useMemo } from "react";
 import { useTheme } from "@/components/ThemeProvider";
-import type { BinaryTree, NormalizedBinaryTree } from "@/renderers/BinaryTree/types";
-import { normalizeBinaryTree, reconcileBinaryTree } from "@/renderers/BinaryTree/types";
+import type { BinaryTree } from "@/renderers/BinaryTree/types";
+import { normalizeBinaryTree, reconcileBinaryTree, arrayEqual } from "@/renderers/BinaryTree/types";
 import { renderBinaryTree } from "@/renderers/BinaryTree/components/renderer";
 import { registerBinaryTreeAnimations } from "@/renderers/BinaryTree/components/animations";
-import { arrayEqual } from "@/renderers/BinaryTree/types";
 
 // Initialize animations once when the module loads
 let animationsInitialized = false;
@@ -26,7 +25,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isInitialized = useRef(false);
   const renderCount = useRef(0);
-  const prevTreeRef = useRef<NormalizedBinaryTree | null>(null);
+  const prevTreeRef = useRef<BinaryTree | null>(null);
   const prevVisualStateRef = useRef<{
     tree: any;
     animationSpeed: 'slow' | 'normal' | 'fast';
@@ -61,7 +60,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
       });
     }
 
-    let normalizedTree: NormalizedBinaryTree;
+    let normalizedTree: BinaryTree;
 
     if (enableReconciliation) {
       // Use reconciliation to preserve node identities where possible

@@ -1,48 +1,112 @@
-import type { DataStructureState, AnimationHint } from '@/lib/core/types';
+import type { DataStructureState, AnimationHint, DataStructureElement } from '@/lib/core/types';
 
 /**
  * Represents a node in a binary tree.
- * Extends the immutable pattern - all updates must create new instances.
+ * - Inherits id and metadata from DataStructureElement.
+ * - `id` and `state` are optional for user input, but always present after normalization.
  */
-export interface BinaryTreeNode {
-  /** The value stored in this node */
+export interface BinaryTreeNode extends DataStructureElement {
   value: number;
-  
-  /** Left child node (null if no left child) */
   left: BinaryTreeNode | null;
-  
-  /** Right child node (null if no right child) */
   right: BinaryTreeNode | null;
-  
-  /** 
-   * Visual state of the node for rendering.
-   * Limited to 3 states to keep animations atomic:
-   * - 'default': Normal appearance
-   * - 'active': Currently being processed/highlighted
-   * - 'visited': Has been processed but still highlighted
-   */
-  state: 'default' | 'active' | 'visited';
-  
-  /** 
-   * Unique identifier for this node instance.
-   * Used for tracking nodes across state changes and animations.
-   */
-  id?: string;
-  
-  /** 
-   * Additional metadata for rendering or algorithm-specific data.
-   * Should not affect the logical structure of the tree.
-   */
-  metadata?: Record<string, any>;
+  state?: 'default' | 'active' | 'visited';
 }
 
 /**
- * Represents a binary tree data structure state (internal normalized format).
- * This is what the system uses internally after normalization.
+ * Represents a binary tree data structure state.
+ * Extends DataStructureState for shared fields.
  */
-export interface NormalizedBinaryTree extends DataStructureState {
-  /** Root node of the tree (null for empty tree) */
+export interface BinaryTree extends DataStructureState {
   root: BinaryTreeNode | null;
+}
+
+/**
+ * Helper: Checks if a BinaryTree is normalized (all nodes have id and state).
+ */
+export function isNormalizedBinaryTree(tree: BinaryTree): boolean {
+  function checkNode(node: BinaryTreeNode | null): boolean {
+    if (!node) return true;
+    if (!node.id || !node.state) return false;
+    return checkNode(node.left) && checkNode(node.right);
+  }
+  return checkNode(tree.root);
+}
+
+/**
+ * Generates a stable ID for a node based on its path in the tree.
+ */
+function generateStableNodeId(
+  value: number,
+  path: string = 'root',
+  existingId?: string
+): string {
+  if (existingId) return existingId;
+  return `node-${path}-${value}`;
+}
+
+/**
+ * Converts a BinaryTree into a normalized BinaryTree (all nodes have id and state).
+ */
+export function normalizeBinaryTreeNode(
+  node: BinaryTreeNode | null,
+  path: string = 'root'
+): BinaryTreeNode | null {
+  if (!node) return null;
+  const stableId = generateStableNodeId(node.value, path, node.id);
+  return {
+    value: node.value,
+    left: normalizeBinaryTreeNode(node.left, `${path}.L`),
+    right: normalizeBinaryTreeNode(node.right, `${path}.R`),
+    state: node.state || 'default',
+    id: stableId,
+    metadata: node.metadata ? { ...node.metadata } : undefined,
+  };
+}
+
+export function normalizeBinaryTree(tree: BinaryTree): BinaryTree {
+  return {
+    ...tree,
+    root: normalizeBinaryTreeNode(tree.root),
+  };
+}
+
+/**
+ * Smart reconciliation function that preserves node identities across updates.
+ */
+export function reconcileBinaryTree(
+  prevTree: BinaryTree | null,
+  newTree: BinaryTree
+): BinaryTree {
+  const normalizedNew = normalizeBinaryTree(newTree);
+  if (!prevTree || !prevTree.root || !normalizedNew.root) {
+    return normalizedNew;
+  }
+  const reconciledRoot = reconcileNodes(prevTree.root, normalizedNew.root);
+  return {
+    ...normalizedNew,
+    root: reconciledRoot,
+  };
+}
+
+function reconcileNodes(
+  prevNode: BinaryTreeNode | null,
+  newNode: BinaryTreeNode | null
+): BinaryTreeNode | null {
+  if (!prevNode && !newNode) return null;
+  if (!prevNode || !newNode) return newNode;
+  if (prevNode.value === newNode.value) {
+    return {
+      ...newNode,
+      id: prevNode.id, // Preserve the existing ID for reconciliation
+      left: reconcileNodes(prevNode.left, newNode.left),
+      right: reconcileNodes(prevNode.right, newNode.right),
+    };
+  }
+  return {
+    ...newNode,
+    left: reconcileNodes(null, newNode.left),
+    right: reconcileNodes(null, newNode.right),
+  };
 }
 
 /**
@@ -60,7 +124,7 @@ export interface BinaryTreeNodeAnimationContext {
   nodeData: BinaryTreeNode;
   
   /** The complete tree state */
-  treeState: NormalizedBinaryTree;
+  treeState: BinaryTree;
   
   /** Callback when animation completes */
   onComplete?: () => void;
@@ -80,7 +144,7 @@ export interface BinaryTreeLinkAnimationContext {
   targetNode: BinaryTreeNode;
   
   /** The complete tree state */
-  treeState: NormalizedBinaryTree;
+  treeState: BinaryTree;
   
   /** Callback when animation completes */
   onComplete?: () => void;
@@ -94,7 +158,7 @@ export interface BinaryTreeVisualizationContext {
   hints: readonly AnimationHint[];
   
   /** The complete tree state */
-  treeState: NormalizedBinaryTree;
+  treeState: BinaryTree;
   
   /** Callback when all animations complete */
   onComplete?: () => void;
@@ -205,9 +269,9 @@ export function updateBinaryTreeNode(
  * Creates a copy of a tree with updated properties (immutable update).
  */
 export function updateBinaryTree(
-  tree: NormalizedBinaryTree,
-  updates: Partial<NormalizedBinaryTree>
-): NormalizedBinaryTree {
+  tree: BinaryTree,
+  updates: Partial<BinaryTree>
+): BinaryTree {
   return {
     ...tree,
     ...updates,
@@ -352,177 +416,4 @@ export function getCachedTreeLayout(
   }
   
   return layout;
-}
-
-/**
- * Plain object representation of a binary tree node (user-friendly input).
- * This is what users can write directly without helper functions.
- */
-export interface BinaryTreeNodeSpec {
-  /** The value stored in this node */
-  value: number;
-  
-  /** Left child node (null if no left child) */
-  left: BinaryTreeNodeSpec | null;
-  
-  /** Right child node (null if no right child) */
-  right: BinaryTreeNodeSpec | null;
-  
-  /** 
-   * Visual state of the node for rendering.
-   * Limited to 3 states to keep animations atomic:
-   * - 'default': Normal appearance
-   * - 'active': Currently being processed/highlighted
-   * - 'visited': Has been processed but still highlighted
-   */
-  state?: 'default' | 'active' | 'visited';
-  
-  /** 
-   * Optional explicit ID for the node. If not provided, one will be generated
-   * based on the node's position in the tree for stable reconciliation.
-   */
-  id?: string;
-  
-  /** 
-   * Additional metadata for rendering or algorithm-specific data.
-   * Should not affect the logical structure of the tree.
-   */
-  metadata?: Record<string, any>;
-}
-
-/**
- * User-friendly binary tree interface that accepts plain objects.
- * This is what users should write - simple, intuitive tree structures.
- */
-export interface BinaryTree {
-  /** Root node of the tree (null for empty tree) */
-  root: BinaryTreeNodeSpec | null;
-  
-  /** 
-   * Human-readable description of the current operation step.
-   * Examples: "Inserting 42", "Traversing left", "Found node", etc.
-   */
-  name?: string;
-  
-  /** 
-   * Animation hints embedded directly in the state.
-   * These hints tell the renderer what animations to apply.
-   */
-  animationHints?: AnimationHint[];
-  
-  /** 
-   * Internal system metadata for rendering assistance.
-   * Used by renderers for layout, positioning, or other display concerns.
-   */
-  _metadata?: Record<string, any>;
-}
-
-/**
- * Generates a stable ID for a node based on its path in the tree.
- * This ensures that nodes in the same position get the same ID across renders,
- * enabling efficient reconciliation without requiring users to specify IDs.
- */
-function generateStableNodeId(
-  value: number, 
-  path: string = 'root', 
-  existingId?: string
-): string {
-  if (existingId) return existingId;
-  
-  // Create a stable ID based on the path and value
-  // This ensures the same node in the same position gets the same ID
-  return `node-${path}-${value}`;
-}
-
-/**
- * Converts a plain object tree specification into a full BinaryTreeNode
- * with stable IDs for efficient reconciliation.
- */
-export function normalizeBinaryTreeNode(
-  spec: BinaryTreeNodeSpec | null,
-  path: string = 'root'
-): BinaryTreeNode | null {
-  if (!spec) return null;
-  
-  const stableId = generateStableNodeId(spec.value, path, spec.id);
-  
-  return {
-    value: spec.value,
-    left: normalizeBinaryTreeNode(spec.left, `${path}.L`),
-    right: normalizeBinaryTreeNode(spec.right, `${path}.R`),
-    state: spec.state || 'default',
-    id: stableId,
-    metadata: spec.metadata ? { ...spec.metadata } : undefined,
-  };
-}
-
-/**
- * Converts a plain object tree specification into a full NormalizedBinaryTree
- * with stable IDs and computed properties.
- */
-export function normalizeBinaryTree(spec: BinaryTree): NormalizedBinaryTree {
-  const normalizedRoot = normalizeBinaryTreeNode(spec.root);
-  
-  return {
-    root: normalizedRoot,
-    name: spec.name,
-    animationHints: spec.animationHints ? [...spec.animationHints] : undefined,
-    _metadata: spec._metadata ? { ...spec._metadata } : undefined,
-  };
-}
-
-/**
- * Smart reconciliation function that preserves node identities across updates.
- * This is similar to React's reconciliation but for tree structures.
- */
-export function reconcileBinaryTree(
-  prevTree: NormalizedBinaryTree | null,
-  newSpec: BinaryTree
-): NormalizedBinaryTree {
-  const newTree = normalizeBinaryTree(newSpec);
-  
-  if (!prevTree || !prevTree.root || !newTree.root) {
-    return newTree;
-  }
-  
-  // Recursively reconcile nodes, preserving IDs where possible
-  const reconciledRoot = reconcileNodes(prevTree.root, newTree.root);
-  
-  return {
-    ...newTree,
-    root: reconciledRoot,
-  };
-}
-
-/**
- * Reconciles two tree nodes, preserving identities where the structure matches.
- * This is the core reconciliation algorithm similar to React's.
- */
-function reconcileNodes(
-  prevNode: BinaryTreeNode | null,
-  newNode: BinaryTreeNode | null
-): BinaryTreeNode | null {
-  // If both are null, no change
-  if (!prevNode && !newNode) return null;
-  
-  // If one is null and the other isn't, use the new one
-  if (!prevNode || !newNode) return newNode;
-  
-  // If the values are the same, this is likely the same logical node
-  // Preserve the previous ID to maintain DOM element identity
-  if (prevNode.value === newNode.value) {
-    return {
-      ...newNode,
-      id: prevNode.id, // Preserve the existing ID for reconciliation
-      left: reconcileNodes(prevNode.left, newNode.left),
-      right: reconcileNodes(prevNode.right, newNode.right),
-    };
-  }
-  
-  // Different values = different nodes, use the new one
-  return {
-    ...newNode,
-    left: reconcileNodes(null, newNode.left), // New subtree
-    right: reconcileNodes(null, newNode.right), // New subtree
-  };
 }

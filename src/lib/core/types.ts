@@ -272,3 +272,12 @@ export interface AnimationRegistration {
   /** Schema describing expected metadata format */
   metadataSchema: AnimationMetadataSchema;
 }
+
+/**
+ * Standard interface for any data structure element (node, item, etc).
+ * Provides a unique id and optional metadata for all elements.
+ */
+export interface DataStructureElement {
+  id?: string;
+  metadata?: Record<string, any>;
+}

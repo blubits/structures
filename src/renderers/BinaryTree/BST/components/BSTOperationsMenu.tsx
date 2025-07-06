@@ -11,7 +11,6 @@ import {
 import { useBST } from "@/renderers/BinaryTree/BST/BSTProvider";
 import { createOperation } from "@/lib/core/types";
 import { generateBSTInsertStates, generateBSTSearchStates, generateBSTFindMinStates, generateBSTFindMaxStates } from "@/renderers/BinaryTree/algorithms";
-import type { NormalizedBinaryTree } from "@/renderers/BinaryTree/types";
 
 interface BSTOperationsMenuProps {
   isExecuting: boolean;

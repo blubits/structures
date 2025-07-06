@@ -1,4 +1,4 @@
-import type { BinaryTreeNode, BinaryTree, NormalizedBinaryTree, BinaryTreeNodeSpec } from '@/renderers/BinaryTree/types';
+import type { BinaryTreeNode, BinaryTree } from '@/renderers/BinaryTree/types';
 import type { AnimationHint } from '@/lib/core/types';
 import { updateBinaryTreeNode, normalizeBinaryTree } from '@/renderers/BinaryTree/types';
 import { traverseDown } from '@/renderers/BinaryTree/components/animations';
@@ -26,12 +26,12 @@ import { traverseDown } from '@/renderers/BinaryTree/components/animations';
  * path management, tree manipulation, and state creation.
  */
 class BinaryTreeStateBuilder {
-  private currentTree: NormalizedBinaryTree;
-  private states: NormalizedBinaryTree[] = [];
+  private currentTree: BinaryTree;
+  private states: BinaryTree[] = [];
   private currentPath: string[] = [];
 
-  constructor(initialTree: NormalizedBinaryTree) {
-    this.currentTree = initialTree;
+  constructor(initialTree: BinaryTree) {
+    this.currentTree = normalizeBinaryTree(initialTree);
   }
 
   /**
@@ -44,17 +44,14 @@ class BinaryTreeStateBuilder {
     // First, mark any previously active nodes as visited
     if (this.currentTree.root) {
       const treeWithVisitedActive = this.markActiveNodesAsVisited(this.currentTree.root);
-      this.currentTree = this.createTreeFromSpec({ root: treeWithVisitedActive });
+      this.currentTree = { ...this.currentTree, root: treeWithVisitedActive };
     }
 
     // Then set the current node to active
     const updatedNode = updateBinaryTreeNode(currentNode, { state: 'active' });
     this.currentTree = this.updateTreeAtCurrentPath(updatedNode);
     
-    this.states.push(this.createTreeFromSpec({
-      root: this.currentTree.root,
-      name: `Comparing ${value} with ${currentNode.value}`,
-    }));
+    this.states.push({ ...this.currentTree, name: `Comparing ${value} with ${currentNode.value}` });
 
     return this;
   }
@@ -72,11 +69,11 @@ class BinaryTreeStateBuilder {
         traverseDown.create({ sourceValue: currentNode.value, targetValue: currentNode.left.value })
       ];
 
-      this.states.push(this.createTreeFromSpec({
-        root: this.currentTree.root,
+      this.states.push({
+        ...this.currentTree,
         name: `Going left`,
         animationHints,
-      }));
+      });
     }
 
     // Update path to point to left child
@@ -98,11 +95,11 @@ class BinaryTreeStateBuilder {
         traverseDown.create({ sourceValue: currentNode.value, targetValue: currentNode.right.value })
       ];
 
-      this.states.push(this.createTreeFromSpec({
-        root: this.currentTree.root,
+      this.states.push({
+        ...this.currentTree,
         name: `Going right`,
         animationHints,
-      }));
+      });
     }
 
     // Update path to point to right child
@@ -115,7 +112,7 @@ class BinaryTreeStateBuilder {
    * Insert a new node at the current path
    */
   insertHere(value: number): this {
-    const newNodeSpec: BinaryTreeNodeSpec = {
+    const newNodeSpec: BinaryTreeNode = {
       value,
       left: null,
       right: null,
@@ -124,10 +121,10 @@ class BinaryTreeStateBuilder {
 
     if (this.currentPath.length === 0) {
       // Inserting at root
-      this.currentTree = this.createTreeFromSpec({
+      this.currentTree = {
         root: newNodeSpec,
         name: `Inserting ${value} as root`,
-      });
+      };
     } else {
       // Inserting at a specific path - we need to update the parent to point to the new node
       const parentPath = this.currentPath.slice(0, -1);
@@ -149,10 +146,10 @@ class BinaryTreeStateBuilder {
         const currentNodeValue = parentNode.value;
         const side = direction === 'left' ? 'left' : 'right';
         
-        this.states.push(this.createTreeFromSpec({
-          root: this.currentTree.root,
+        this.states.push({
+          ...this.currentTree,
           name: `Inserting ${value} as ${side} child of ${currentNodeValue}`,
-        }));
+        });
       }
     }
 
@@ -166,7 +163,7 @@ class BinaryTreeStateBuilder {
     const currentNode = this.getCurrentNode();
     if (!currentNode) return this;
 
-    const newNodeSpec: BinaryTreeNodeSpec = {
+    const newNodeSpec: BinaryTreeNode = {
       value,
       left: null,
       right: null,
@@ -184,10 +181,10 @@ class BinaryTreeStateBuilder {
     // Update the tree with the modified current node
     this.currentTree = this.updateTreeAtCurrentPath(updatedCurrentNode);
     
-    this.states.push(this.createTreeFromSpec({
-      root: this.currentTree.root,
+    this.states.push({
+      ...this.currentTree,
       name: `Inserting ${value} as left child of ${currentNode.value}`,
-    }));
+    });
 
     return this;
   }
@@ -199,7 +196,7 @@ class BinaryTreeStateBuilder {
     const currentNode = this.getCurrentNode();
     if (!currentNode) return this;
 
-    const newNodeSpec: BinaryTreeNodeSpec = {
+    const newNodeSpec: BinaryTreeNode = {
       value,
       left: null,
       right: null,
@@ -217,10 +214,10 @@ class BinaryTreeStateBuilder {
     // Update the tree with the modified current node
     this.currentTree = this.updateTreeAtCurrentPath(updatedCurrentNode);
     
-    this.states.push(this.createTreeFromSpec({
-      root: this.currentTree.root,
+    this.states.push({
+      ...this.currentTree,
       name: `Inserting ${value} as right child of ${currentNode.value}`,
-    }));
+    });
 
     return this;
   }
@@ -244,9 +241,9 @@ class BinaryTreeStateBuilder {
   resetAll(): this {
     if (this.currentTree.root) {
       const resetRoot = this.resetAllNodesToDefault(this.currentTree.root);
-      this.currentTree = this.createTreeFromSpec({
+      this.currentTree = {
         root: resetRoot,
-      });
+      };
     }
     
     return this;
@@ -256,10 +253,10 @@ class BinaryTreeStateBuilder {
    * Set the name of the current tree state and add it to states
    */
   setName(name: string): this {
-    this.states.push(this.createTreeFromSpec({
-      root: this.currentTree.root,
+    this.states.push({
+      ...this.currentTree,
       name,
-    }));
+    });
     
     return this;
   }
@@ -297,7 +294,7 @@ class BinaryTreeStateBuilder {
   /**
    * Get all generated states
    */
-  getStates(): NormalizedBinaryTree[] {
+  getStates(): BinaryTree[] {
     return this.states;
   }
 
@@ -314,17 +311,17 @@ class BinaryTreeStateBuilder {
     return currentNode;
   }
 
-  private updateTreeAtCurrentPath(updatedNode: BinaryTreeNode): NormalizedBinaryTree {
+  private updateTreeAtCurrentPath(updatedNode: BinaryTreeNode): BinaryTree {
     return this.updateTreeAtPath(this.currentPath, updatedNode);
   }
 
-  private updateTreeAtPath(path: string[], updatedNode: BinaryTreeNode): NormalizedBinaryTree {
+  private updateTreeAtPath(path: string[], updatedNode: BinaryTreeNode): BinaryTree {
     if (!this.currentTree.root) {
-      return this.createTreeFromSpec({ root: updatedNode });
+      return { root: updatedNode };
     }
 
     const newRoot = this.updateTreeAtPathRecursive(this.currentTree.root, path, updatedNode);
-    return this.createTreeFromSpec({ root: newRoot });
+    return { root: newRoot };
   }
 
   private updateTreeAtPathRecursive(
@@ -361,10 +358,6 @@ class BinaryTreeStateBuilder {
     });
   }
 
-  private createTreeFromSpec(spec: BinaryTree): NormalizedBinaryTree {
-    return normalizeBinaryTree(spec);
-  }
-
   private markActiveNodesAsVisited(node: BinaryTreeNode | null): BinaryTreeNode | null {
     if (!node) return null;
 
@@ -387,7 +380,7 @@ class BinaryTreeStateBuilder {
  * This implementation mirrors actual BST insertion using iterative approach
  * with while loops, making it educational and easy to understand.
  */
-export function generateBSTInsertStates(tree: NormalizedBinaryTree, value: number): NormalizedBinaryTree[] {
+export function generateBSTInsertStates(tree: BinaryTree, value: number): BinaryTree[] {
   const builder = new BinaryTreeStateBuilder(tree);
   
   // Handle empty tree
@@ -453,7 +446,7 @@ export function generateBSTInsertStates(tree: NormalizedBinaryTree, value: numbe
  * This implementation mirrors actual BST search using iterative approach
  * with while loops, making it educational and easy to understand.
  */
-export function generateBSTSearchStates(tree: NormalizedBinaryTree, value: number): NormalizedBinaryTree[] {
+export function generateBSTSearchStates(tree: BinaryTree, value: number): BinaryTree[] {
   const builder = new BinaryTreeStateBuilder(tree);
   
   // Handle empty tree
@@ -514,7 +507,7 @@ export function generateBSTSearchStates(tree: NormalizedBinaryTree, value: numbe
  * 
  * In a BST, the minimum value is always the leftmost node.
  */
-export function generateBSTFindMinStates(tree: NormalizedBinaryTree): NormalizedBinaryTree[] {
+export function generateBSTFindMinStates(tree: BinaryTree): BinaryTree[] {
   const builder = new BinaryTreeStateBuilder(tree);
   
   if (!tree.root) {
@@ -553,7 +546,7 @@ export function generateBSTFindMinStates(tree: NormalizedBinaryTree): Normalized
  * 
  * In a BST, the maximum value is always the rightmost node.
  */
-export function generateBSTFindMaxStates(tree: NormalizedBinaryTree): NormalizedBinaryTree[] {
+export function generateBSTFindMaxStates(tree: BinaryTree): BinaryTree[] {
   const builder = new BinaryTreeStateBuilder(tree);
   
   if (!tree.root) {

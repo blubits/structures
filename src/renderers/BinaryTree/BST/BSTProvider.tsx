@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { HistoryController } from '@/lib/core/History';
 import { normalizeBinaryTree } from '@/renderers/BinaryTree/types';
-import type { BinaryTree, NormalizedBinaryTree } from '@/renderers/BinaryTree/types';
+import type { BinaryTree } from '@/renderers/BinaryTree/types';
 import { registerBinaryTreeAnimations } from '@/renderers/BinaryTree/components/animations';
 
 // Register animations on module load
@@ -12,8 +12,8 @@ registerBinaryTreeAnimations();
  * Context for BST operations and state management
  */
 interface BSTContextValue {
-  historyController: HistoryController<NormalizedBinaryTree>;
-  currentState: NormalizedBinaryTree;
+  historyController: HistoryController<BinaryTree>;
+  currentState: BinaryTree;
   isExecuting: boolean;
   animationSpeed: 'slow' | 'normal' | 'fast';
   setAnimationSpeed: (speed: 'slow' | 'normal' | 'fast') => void;
@@ -39,7 +39,7 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
   // Initialize the history controller
   const historyController = useMemo(() => {
     const initialState = initialTree ? normalizeBinaryTree(initialTree) : normalizeBinaryTree({ root: null, name: "Empty BST" });
-    const controller = new HistoryController<NormalizedBinaryTree>(initialState);
+    const controller = new HistoryController<BinaryTree>(initialState);
     
     if (import.meta.env.DEV) {
       console.log('🏗️ BSTProvider: History controller initialized', {
@@ -51,7 +51,7 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
   }, [initialTree]);
 
   // Track current state manually for now (TODO: integrate with useHistory in future)
-  const [currentState, setCurrentState] = useState<NormalizedBinaryTree>(() => 
+  const [currentState, setCurrentState] = useState<BinaryTree>(() => 
     historyController.getCurrentVisualizationState() || normalizeBinaryTree({ root: null, name: "Empty BST" })
   );
 
