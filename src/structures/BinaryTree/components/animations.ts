@@ -14,7 +14,7 @@ import type {
 } from '@/lib/core/AnimationController';
 import type { AnimationHint } from '@/lib/core/types';
 import * as d3 from 'd3';
-import { BINARY_TREE_COLORS } from '@/renderers/BinaryTree/config.colors';
+import { BINARY_TREE_COLORS } from '@/structures/BinaryTree/config.colors';
 
 // =============================================================================
 // ANIMATION HINT DESCRIPTOR SYSTEM

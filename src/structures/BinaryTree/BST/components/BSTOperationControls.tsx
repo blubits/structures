@@ -8,9 +8,9 @@ import {
   MdReplay,
   MdSpeed
 } from "react-icons/md";
-import { useBST } from "@/renderers/BinaryTree/BST/BSTProvider";
-import type { BinaryTree } from "@/renderers/BinaryTree/types";
-import { countNodes, normalizeBinaryTree } from "@/renderers/BinaryTree/types";
+import { useBST } from "@/structures/BinaryTree/BST/BSTProvider";
+import type { BinaryTree } from "@/structures/BinaryTree/types";
+import { countNodes, normalizeBinaryTree } from "@/structures/BinaryTree/types";
 
 interface BSTOperationControlsProps {
   currentState: BinaryTree;

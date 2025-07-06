@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronRight, ChevronUp, Bug, Code, GitBranch } from 'lucide-react';
-import type { BinaryTree, BinaryTreeNode } from '@/renderers/BinaryTree/types';
-import { countNodes, normalizeBinaryTree } from '@/renderers/BinaryTree/types';
+import type { BinaryTree, BinaryTreeNode } from '@/structures/BinaryTree/types';
+import { countNodes, normalizeBinaryTree } from '@/structures/BinaryTree/types';
 import type { OperationGroup } from '@/lib/core/types';
 
 interface DebugPanelProps {
