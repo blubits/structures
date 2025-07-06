@@ -7,9 +7,9 @@
  */
 
 import { AnimationController, createSimpleHintProcessor, createSimpleElementAnimationExecutor } from '../../../lib/core/AnimationController';
-import type { 
-  VisualizationAnimationConfig, 
-  AnimationRegistration,
+import { defineAnimationHint, type AnimationHintDescriptor } from '../../../lib/core/AnimationHintDescriptor';
+import type {
+  VisualizationAnimationConfig,
   GenericAnimationContext
 } from '../../../lib/core/AnimationController';
 import type { AnimationHint } from '../../../lib/core/types';
@@ -17,31 +17,13 @@ import * as d3 from 'd3';
 import { BINARY_TREE_COLORS } from '../config.colors';
 
 // =============================================================================
-// ANIMATION HINT CREATORS
+// ANIMATION HINT DESCRIPTOR SYSTEM
 // =============================================================================
 
-/**
- * Create a traverse-down animation hint
- * 
- * @param sourceValue - The value of the source node
- * @param targetValue - The value of the target node
- * @param duration - Optional duration in milliseconds (default: 600)
- * @returns AnimationHint for traverse-down animation
- */
-export function createTraverseDownHint(
-  sourceValue: number,
-  targetValue: number,
-  duration?: number
-): AnimationHint {
-  return {
-    type: 'traverse-down',
-    metadata: { sourceValue, targetValue },
-    duration: duration || 600
-  };
-}
+// (Moved to core. Use imported types and helpers.)
 
 // =============================================================================
-// BINARY TREE ANIMATION FUNCTIONS
+// BINARY TREE ANIMATION FUNCTIONS (move up for hoisting)
 // =============================================================================
 
 /**
@@ -145,94 +127,87 @@ const traverseDownAnimation = (context: GenericAnimationContext): void => {
 };
 
 // =============================================================================
-// BINARY TREE ANIMATION CONFIGURATION
+// BINARY TREE ANIMATION HINTS (DESCRIPTORS)
 // =============================================================================
 
-/**
- * Animation registrations for binary tree
- */
-const binaryTreeAnimations = new Map<string, AnimationRegistration>([
-  ['traverse-down', {
-    animationFunction: traverseDownAnimation,
-    metadataSchema: {
-      validateMetadata: (metadata: Record<string, any>) => {
-        const isValid = typeof metadata.sourceValue === 'number' && 
-               typeof metadata.targetValue === 'number';
-        if (import.meta.env.DEV) {
-          console.log('🎬 Validating traverse-down metadata:', { metadata, isValid });
-        }
-        return isValid;
-      },
-      extractTargets: (metadata: Record<string, any>) => {
-        const source = metadata.sourceValue;
-        const target = metadata.targetValue;
-        if (source !== undefined && target !== undefined) {
-          const linkId = `${source}-${target}`;
-          if (import.meta.env.DEV) {
-            console.log('🎬 extractTargets: Link target created', { source, target, linkId });
-          }
-          return [linkId];
-        }
-        return [];
-      }
-    }
-  }]
-]);
-
-/**
- * Maps animation types to their corresponding element types
- */
-const animationTypeToElementType = new Map<string, string>([
-  ['traverse-down', 'link']
-]);
-
-/**
- * Extract element IDs for binary tree animations
- */
-function extractBinaryTreeElementId(animationType: string, hint: AnimationHint): string[] {
-  const registration = binaryTreeAnimations.get(animationType);
-  if (!registration || !hint.metadata) {
-    return [];
-  }
-
-  return registration.metadataSchema.extractTargets?.(hint.metadata) || [];
+export interface TraverseDownParams {
+  sourceValue: number;
+  targetValue: number;
 }
 
+export const traverseDown = defineAnimationHint<TraverseDownParams>({
+  type: 'traverse-down',
+  create: ({ sourceValue, targetValue, duration }) => ({
+    type: 'traverse-down',
+    metadata: { sourceValue, targetValue },
+    duration: duration || 600
+  }),
+  animationFunction: traverseDownAnimation,
+  metadataSchema: {
+    validateMetadata: (metadata) =>
+      typeof metadata?.sourceValue === 'number' &&
+      typeof metadata?.targetValue === 'number',
+    extractTargets: (metadata) => {
+      if (!metadata) return [];
+      const { sourceValue, targetValue } = metadata;
+      return sourceValue !== undefined && targetValue !== undefined
+        ? [`${sourceValue}-${targetValue}`]
+        : [];
+    }
+  },
+  elementType: 'link'
+});
+
+// =============================================================================
+// ANIMATION HINT REGISTRATION UTILITY
+// =============================================================================
+
 /**
- * Binary tree visualization animation configuration
+ * Register all animation hint descriptors for a visualization
  */
-const binaryTreeAnimationConfig: VisualizationAnimationConfig = {
-  animations: binaryTreeAnimations,
-  
-  processHints: createSimpleHintProcessor(
-    animationTypeToElementType,
-    extractBinaryTreeElementId
-  ),
-  
-  executeElementAnimations: createSimpleElementAnimationExecutor(
-    AnimationController,
-    'binary-tree'
-  )
-};
+export function registerAnimationHints(
+  controller: typeof AnimationController,
+  visualization: string,
+  descriptors: AnimationHintDescriptor[]
+) {
+  const animations = new Map(
+    descriptors.map(d => [
+      d.type,
+      {
+        animationFunction: d.animationFunction,
+        metadataSchema: d.metadataSchema
+      }
+    ])
+  );
+  const animationTypeToElementType = new Map(
+    descriptors.map(d => [d.type, d.elementType])
+  );
+  const config: VisualizationAnimationConfig = {
+    animations,
+    processHints: createSimpleHintProcessor(animationTypeToElementType, (type, hint) =>
+      animations.get(type)?.metadataSchema.extractTargets?.(hint.metadata ?? {}) || []
+    ),
+    executeElementAnimations: createSimpleElementAnimationExecutor(controller, visualization)
+  };
+  controller.registerVisualization(visualization, config);
+}
 
 // =============================================================================
-// REGISTRATION
+// REGISTRATION (NEW SYSTEM)
 // =============================================================================
 
 /**
- * Registers binary tree animations with the generic animation controller.
+ * Registers all binary tree animation hints with the generic animation controller.
  * Call this function during application initialization.
  */
 export function registerBinaryTreeAnimations(): void {
   if (import.meta.env.DEV) {
     console.log('🎬 Registering binary tree animations with AnimationController...');
   }
-  
-  AnimationController.registerVisualization('binary-tree', binaryTreeAnimationConfig);
-  
+  registerAnimationHints(AnimationController, 'binary-tree', [traverseDown]);
   if (import.meta.env.DEV) {
     console.log('🎬 Registered binary tree visualization:', {
-      animationTypes: Array.from(binaryTreeAnimations.keys()),
+      animationTypes: ['traverse-down'],
       registeredVisualizations: AnimationController.getRegisteredVisualizations()
     });
   }
@@ -261,6 +236,14 @@ export function processBinaryTreeAnimations(
     onComplete
   );
 }
+
+/**
+ * Usage example (in renderer or logic):
+ *   animationHints: [traverseDown.create({ sourceValue: 8, targetValue: 3 })]
+ *
+ * To register all hints:
+ *   registerBinaryTreeAnimations();
+ */
 
 /**
  * Default export for convenience
