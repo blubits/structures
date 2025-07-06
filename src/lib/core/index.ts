@@ -11,7 +11,6 @@ export * from './types';
 
 // Controllers
 export { HistoryController } from './History';
-export { OperationController } from './OperationController';
 
 // Animation system
 export { AnimationController } from './AnimationController';

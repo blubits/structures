@@ -1,13 +1,13 @@
 import { useMemo, useCallback, useSyncExternalStore } from 'react';
 import type { DataStructureState, Operation } from '@/lib/core/types';
-import type { OperationController } from '@/lib/core/OperationController';
+import type { HistoryController } from '@/lib/core/History';
 
 /**
  * Hook return type for history controllers.
  */
 export interface UseHistoryResult<
   TState extends DataStructureState,
-  TController extends OperationController<TState>
+  TController extends HistoryController<TState>
 > {
   /** The controller instance */
   controller: TController;
@@ -68,7 +68,7 @@ export interface UseHistoryResult<
  * Generic React hook for data structure controllers.
  * 
  * Provides reactive state management for any data structure that extends
- * OperationController. Uses React's useSyncExternalStore
+ * HistoryController. Uses React's useSyncExternalStore
  * for optimal performance and consistency.
  * 
  * @param ControllerClass - Constructor for the controller class
@@ -78,7 +78,7 @@ export interface UseHistoryResult<
  */
 export function useHistory<
   TState extends DataStructureState,
-  TController extends OperationController<TState>
+  TController extends HistoryController<TState>
 >(
   ControllerClass: new (initialState: TState | null, ...args: any[]) => TController,
   initialState: TState | null = null,
@@ -91,8 +91,8 @@ export function useHistory<
 
   // Subscribe to controller state changes using React's useSyncExternalStore
   const state = useSyncExternalStore(
-    controller.getHistoryController().subscribe,
-    controller.getHistoryController().getSnapshot
+    controller.subscribe,
+    controller.getSnapshot
   );
 
   // Create stable callback functions
@@ -147,30 +147,5 @@ export function useHistory<
     // History access
     history,
     clear,
-  };
-}
-
-/**
- * Convenience hook for creating operation execution functions.
- * Returns memoized functions for executing operations with or without animation.
- * 
- * @param controller - The data structure controller
- * @returns Object with execution functions
- */
-export function useOperationExecution<
-  TState extends DataStructureState,
-  TController extends OperationController<TState>
->(controller: TController) {
-  const executeWithAnimation = useCallback((operation: Operation) => {
-    return controller.executeOperation(operation);
-  }, [controller]);
-
-  const executeDirect = useCallback((operation: Operation) => {
-    return controller.executeOperationDirect(operation);
-  }, [controller]);
-
-  return {
-    executeWithAnimation,
-    executeDirect,
   };
 }
