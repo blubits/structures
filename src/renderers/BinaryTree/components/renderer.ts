@@ -348,10 +348,24 @@ export function renderBinaryTree(
 
         // Update circle colors based on state changes
         updatedNodes.select('circle')
-          .call(circles => isFirstRender ? circles.attr('fill', (d: any) => getNodeFillColor((d as NodeData).state, colors)) : circles.transition()
-            .duration(animationDuration / 2)
-            .attr('fill', (d: any) => getNodeFillColor((d as NodeData).state, colors))
-          );
+          .call(circles => {
+            if (isFirstRender) {
+              circles
+                .attr('fill', (d: any) => getNodeFillColor((d as NodeData).state, colors))
+                .attr('stroke', (d: any) => {
+                  const state = (d as NodeData).state as 'default' | 'active' | 'visited';
+                  return colors.node.border[state] || colors.node.border.default;
+                });
+            } else {
+              circles.transition()
+                .duration(animationDuration / 2)
+                .attr('fill', (d: any) => getNodeFillColor((d as NodeData).state, colors))
+                .attr('stroke', (d: any) => {
+                  const state = (d as NodeData).state as 'default' | 'active' | 'visited';
+                  return colors.node.border[state] || colors.node.border.default;
+                });
+            }
+          });
 
         return updatedNodes;
       },
