@@ -8,9 +8,9 @@ import {
   Trash2,
   Menu
 } from "lucide-react";
-import { useBST } from "@/structures/BinaryTree/BST/BSTProvider";
+import { useBST } from "@/structures/BinaryTree/variants/BST/BSTProvider";
 import { createOperation } from "@/lib/core/types";
-import { generateBSTInsertStates, generateBSTSearchStates, generateBSTFindMinStates, generateBSTFindMaxStates } from "@/structures/BinaryTree/BST/algorithms";
+import { generateBSTInsertStates, generateBSTSearchStates, generateBSTFindMinStates, generateBSTFindMaxStates } from "@/structures/BinaryTree/variants/BST/algorithms";
 
 interface BSTOperationsMenuProps {
   isExecuting: boolean;

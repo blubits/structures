@@ -8,9 +8,9 @@ import {
   BSTOperationControls,
   normalizeBinaryTree,
   type BinaryTree
-} from "../structures/BinaryTree";
-import { HistoryMenu, type HistoryOperation } from "../components/HistoryMenu";
-import { DebugPanel } from "../components/DebugPanel";
+} from "@/structures/BinaryTree";
+import { HistoryMenu, type HistoryOperation } from "@/components/HistoryMenu";
+import { DebugPanel } from "@/components/DebugPanel";
 import { 
   Plus, 
   Search, 

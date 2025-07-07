@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { useTheme } from "./ThemeProvider";
+import { useTheme } from "@/components/ThemeProvider";
 import { FaSitemap, FaSun, FaMoon, FaBars, FaTimes } from "react-icons/fa";
 import { ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";

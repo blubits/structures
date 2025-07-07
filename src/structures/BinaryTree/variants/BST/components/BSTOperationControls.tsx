@@ -8,7 +8,7 @@ import {
   MdReplay,
   MdSpeed
 } from "react-icons/md";
-import { useBST } from "@/structures/BinaryTree/BST/BSTProvider";
+import { useBST } from "@/structures/BinaryTree/variants/BST/BSTProvider";
 import type { BinaryTree } from "@/structures/BinaryTree/types";
 import { countNodes, normalizeBinaryTree } from "@/structures/BinaryTree/types";
 

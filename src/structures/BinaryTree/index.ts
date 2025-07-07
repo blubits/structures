@@ -16,4 +16,4 @@ export * from './config';
 export { BinaryTreeVisualizer } from './components/BinaryTreeVisualizer';
 
 // BST-specific exports (re-exported from BST subdirectory)
-export * from './BST';
+export * from './variants/BST';
