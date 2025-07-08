@@ -16,7 +16,7 @@ export * from '@structures/BinaryTree/config';
 export { BinaryTreeVisualizer } from '@structures/BinaryTree/components/BinaryTreeVisualizer';
 
 // Algorithms
-export { BinaryTreeStateBuilder } from '@structures/BinaryTree/algorithms/BinaryTreeStateBuilder';
+export { BinaryTreeStateBuilder } from '@/structures/BinaryTree/utils/BinaryTreeStateBuilder';
 
 // BST-specific exports (re-exported from BST subdirectory)
 export * from '@structures/BinaryTree/variants/BST';

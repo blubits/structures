@@ -2,8 +2,8 @@ import React, { useRef, useEffect, useMemo } from "react";
 import { useTheme } from "@/components/ThemeProvider";
 import type { BinaryTree } from "@/structures/BinaryTree/types";
 import { normalizeBinaryTree, reconcileBinaryTree, arrayEqual } from "@/structures/BinaryTree/types";
-import { renderBinaryTree } from "@/structures/BinaryTree/components/renderer";
-import { registerBinaryTreeAnimations } from "@/structures/BinaryTree/components/animations";
+import { renderBinaryTree } from "@/structures/BinaryTree/renderer";
+import { registerBinaryTreeAnimations } from "@/structures/BinaryTree/animations";
 
 // Initialize animations once when the module loads
 let animationsInitialized = false;

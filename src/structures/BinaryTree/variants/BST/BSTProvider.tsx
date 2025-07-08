@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { HistoryController } from '@/lib/core/History';
 import { normalizeBinaryTree } from '@/structures/BinaryTree/types';
 import type { BinaryTree } from '@/structures/BinaryTree/types';
-import { registerBinaryTreeAnimations } from '@/structures/BinaryTree/components/animations';
+import { registerBinaryTreeAnimations } from '@/structures/BinaryTree/animations';
 
 // Register animations on module load
 registerBinaryTreeAnimations();

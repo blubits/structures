@@ -1,7 +1,7 @@
 import type { BinaryTreeNode, BinaryTree } from '@structures/BinaryTree/types';
 import type { AnimationHint } from '@/lib/core/types';
 import { updateBinaryTreeNode, normalizeBinaryTree } from '@structures/BinaryTree/types';
-import { traverseDown } from '@structures/BinaryTree/components/animations';
+import { traverseDown } from '@/structures/BinaryTree/animations';
 
 /**
  * Smart Binary Tree State Builder
