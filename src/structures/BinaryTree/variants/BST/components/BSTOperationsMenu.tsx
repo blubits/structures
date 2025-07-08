@@ -133,7 +133,6 @@ export function BSTOperationsMenu({ isExecuting }: BSTOperationsMenuProps) {
       triggerIcon={<Menu size={24} />}
       triggerBgColor="bg-gray-500 hover:bg-gray-600 text-white"
       position={{ position: "absolute", top: 24, left: 24, zIndex: 30 }}
-      menuTitle="BST Operations"
     />
   );
 }
