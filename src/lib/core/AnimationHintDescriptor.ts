@@ -1,5 +1,5 @@
-import type { AnimationHint } from './types';
-import type { GenericAnimationContext } from './AnimationController';
+import type { AnimationHint } from '@/lib/core/types';
+import type { GenericAnimationContext } from '@/lib/core/AnimationController';
 
 /**
  * Developer-friendly animation hint descriptor type

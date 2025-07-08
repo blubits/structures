@@ -9,7 +9,7 @@
  * that can accommodate any visualization type now or in the future.
  */
 
-import type { AnimationHint } from './types';
+import type { AnimationHint } from '@/lib/core/types';
 
 /**
  * Generic animation context - contains minimal required information

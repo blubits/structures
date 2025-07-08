@@ -1,8 +1,8 @@
 import * as d3 from 'd3';
-import { processBinaryTreeAnimations } from './animations';
-import type { BinaryTreeNode } from '@/structures/BinaryTree/types';
+import { processBinaryTreeAnimations } from '@structures/BinaryTree/components/animations';
+import type { BinaryTreeNode } from '@structures/BinaryTree/types';
 import type { AnimationHint } from '@/lib/core/types';
-import { BINARY_TREE_COLORS } from '@/structures/BinaryTree/config.colors';
+import { BINARY_TREE_COLORS } from '@structures/BinaryTree/config.colors';
 import {
   calculateTreeLayout,
   getNodeFillColor,
@@ -10,7 +10,7 @@ import {
   collectNodesAndLinks,
   type NodeData,
   type LinkData
-} from './rendererUtils';
+} from '@structures/BinaryTree/components/rendererUtils';
 
 /**
  * Visual state interface for the binary tree renderer

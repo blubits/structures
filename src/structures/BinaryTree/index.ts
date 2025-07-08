@@ -7,13 +7,16 @@
  */
 
 // Core types
-export * from './types';
+export * from '@structures/BinaryTree/types';
 
 // Configuration
-export * from './config';
+export * from '@structures/BinaryTree/config';
 
 // Generic Binary Tree Components
-export { BinaryTreeVisualizer } from './components/BinaryTreeVisualizer';
+export { BinaryTreeVisualizer } from '@structures/BinaryTree/components/BinaryTreeVisualizer';
+
+// Algorithms
+export { BinaryTreeStateBuilder } from '@structures/BinaryTree/algorithms/BinaryTreeStateBuilder';
 
 // BST-specific exports (re-exported from BST subdirectory)
-export * from './variants/BST';
+export * from '@structures/BinaryTree/variants/BST';

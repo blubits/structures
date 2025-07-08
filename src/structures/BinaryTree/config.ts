@@ -1,5 +1,5 @@
-import type { BinaryTreeConfig } from './types';
-import { DEFAULT_BINARY_TREE_CONFIG } from './types';
+import type { BinaryTreeConfig } from '@structures/BinaryTree/types';
+import { DEFAULT_BINARY_TREE_CONFIG } from '@structures/BinaryTree/types';
 
 /**
  * BST-specific configuration that extends the base binary tree config.

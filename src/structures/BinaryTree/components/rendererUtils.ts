@@ -1,4 +1,4 @@
-import type { BinaryTreeNode } from '@/structures/BinaryTree/types';
+import type { BinaryTreeNode } from '@structures/BinaryTree/types';
 
 /**
  * Types for nodes and links data

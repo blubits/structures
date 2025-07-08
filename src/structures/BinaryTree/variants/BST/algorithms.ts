@@ -1,5 +1,5 @@
-import type { BinaryTree } from '@/structures/BinaryTree/types';
-import { BinaryTreeStateBuilder } from '@/structures/BinaryTree/algorithms/BinaryTreeStateBuilder';
+import type { BinaryTree } from '@structures/BinaryTree';
+import { BinaryTreeStateBuilder } from '@structures/BinaryTree';
 
 /**
  * BST Algorithm Implementations with Smart State Builder
