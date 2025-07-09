@@ -46,7 +46,7 @@ const CONFIG = {
 let zoomBehavior: d3.ZoomBehavior<SVGSVGElement, unknown> | null = null;
 
 /**
- * Renders a binary tree using D3, including zoom, pan, and animation support via AnimationController.
+ * Renders a binary tree using D3.
  */
 export function renderBinaryTree(
   svgElement: SVGSVGElement, 
@@ -124,12 +124,17 @@ export function renderBinaryTree(
     }
   }
 
-  // Calculate layout
+  // ============================================================================
+  // STEP 1: ASSIGNMENT
+  // Assign IDs to each data structure element (nodes and links)
+  // ============================================================================
+  
+  // Calculate layout positions for all nodes
   const positions = calculateTreeLayout(tree, CONFIG);
   const allPositions = Array.from(positions.values());
   
   if (import.meta.env.DEV) {
-    console.log('🌳 renderBinaryTree: Layout calculated', {
+    console.log('🌳 STEP 1 - Assignment: Layout calculated', {
       positionsCount: positions.size,
       allPositionsLength: allPositions.length,
       positions: Object.fromEntries(positions)
@@ -137,6 +142,23 @@ export function renderBinaryTree(
   }
   
   if (allPositions.length === 0) return;
+
+  // Collect all nodes and links with assigned IDs
+  const { nodes, links } = collectNodesAndLinks(tree, positions);
+
+  if (import.meta.env.DEV) {
+    console.log('🌳 STEP 1 - Assignment: Collected nodes and links with IDs', {
+      nodesCount: nodes.length,
+      linksCount: links.length,
+      nodes: nodes.map((n: NodeData) => ({ value: n.value, id: n.id, state: n.state })),
+      links: links.map((l: LinkData) => ({ id: l.id, sourceValue: l.sourceValue, targetValue: l.targetValue }))
+    });
+  }
+
+  // ============================================================================
+  // STEP 2: RECONCILIATION
+  // Set up SVG structure and prepare for reconciliation with previous state
+  // ============================================================================
 
   // Calculate SVG dimensions and bounds
   const minX = Math.min(...allPositions.map(p => p.x));
@@ -180,7 +202,7 @@ export function renderBinaryTree(
     svg.call(zoomBehavior);
   }
 
-  // Get or create persistent groups for links and nodes (don't clear them)
+  // Get or create persistent groups for links and nodes (preparation for reconciliation)
   let linkGroup = mainGroup.select<SVGGElement>('g.links');
   if (linkGroup.empty()) {
     linkGroup = mainGroup.append('g').attr('class', 'links');
@@ -191,28 +213,43 @@ export function renderBinaryTree(
     nodeGroup = mainGroup.append('g').attr('class', 'nodes');
   }
 
-  // Get color scheme
+  // Get color scheme for styling
   const colors = CONFIG.colors[theme];
 
   if (import.meta.env.DEV) {
-    console.log('🎨 Color scheme:', { theme, colors });
-  }
-
-  // Collect all nodes and links for rendering
-  const { nodes, links } = collectNodesAndLinks(tree, positions);
-
-  if (import.meta.env.DEV) {
-    console.log('🌳 renderBinaryTree: Collected nodes and links', {
-      nodesCount: nodes.length,
-      linksCount: links.length,
-      nodes: nodes.map((n: NodeData) => ({ value: n.value, state: n.state }))
+    console.log('� STEP 2 - Reconciliation: SVG structure prepared', { 
+      theme, 
+      colors,
+      bounds,
+      contentWidth,
+      contentHeight
     });
   }
+
+  // Track previous node states for reconciliation
+  const prevNodeStates: Map<string | number, string> = (renderBinaryTree as any)._prevNodeStates || new Map();
 
   // Get animation duration for transitions
   const animationDuration = isFirstRender ? 0 : getAnimationDuration(visualState.animationSpeed);
 
-  // Render links with D3 join pattern
+  // ============================================================================
+  // STEP 3: DIFFING
+  // Determine elements that need to be added, deleted, or updated using D3 joins
+  // ============================================================================
+
+  if (import.meta.env.DEV) {
+    console.log('🌳 STEP 3 - Diffing: Preparing D3 joins for reconciliation', {
+      animationDuration,
+      isFirstRender
+    });
+  }
+
+  // ============================================================================
+  // STEP 4: RENDERING AND STYLING
+  // Update the view and apply element styling based on metadata
+  // ============================================================================
+
+  // Render links with D3 join pattern (handles add/update/remove diffing)
   linkGroup.selectAll('line')
     .data(links, (d: any) => (d as LinkData).id)
     .join(
@@ -257,9 +294,6 @@ export function renderBinaryTree(
       linkElement.setAttribute('data-source-value', linkData.sourceValue.toString());
       linkElement.setAttribute('data-target-value', linkData.targetValue.toString());
     });
-
-  // Track previous node states by id or value
-  const prevNodeStates: Map<string | number, string> = (renderBinaryTree as any)._prevNodeStates || new Map();
 
   // Render nodes with D3 join pattern using node IDs for better reconciliation
   const nodeElements = nodeGroup.selectAll('g.node')
@@ -350,7 +384,7 @@ export function renderBinaryTree(
       }
     });
 
-  // Add hover effects
+  // Add hover effects for better interactivity
   nodeElements
     .on('mouseenter', function() {
       d3.select(this).select('circle')
@@ -365,10 +399,21 @@ export function renderBinaryTree(
         .attr('stroke-width', 2);
     });
 
-  // Handle all animations using the new generic system
+  if (import.meta.env.DEV) {
+    console.log('🌳 STEP 4 - Rendering and styling: Elements rendered and styled', {
+      nodeElementsCount: nodeElements.size(),
+      linksRendered: linkGroup.selectAll('line').size()
+    });
+  }
+
+  // ============================================================================
+  // STEP 5: ANIMATION
+  // Determine and process animations using the animation layer
+  // ============================================================================
+  // Handle all animations using the animation layer
   if (visualState.animationHints && visualState.animationHints.length > 0) {
     if (import.meta.env.DEV) {
-      console.log('🎬 Processing animations with hints:', {
+      console.log('� STEP 5 - Animation: Processing animations with hints', {
         hintsCount: visualState.animationHints.length,
         hints: visualState.animationHints.map(h => ({ type: h.type, metadata: h.metadata }))
       });
@@ -446,8 +491,16 @@ export function renderBinaryTree(
       animationHints,
       elementProvider
     );
+
+    if (import.meta.env.DEV) {
+      console.log('🌳 STEP 5 - Animation: Animations processed successfully');
+    }
   }
 
-  // Store prevNodeStates for next render
+  // Store prevNodeStates for next render (part of reconciliation state)
   (renderBinaryTree as any)._prevNodeStates = prevNodeStates;
+
+  if (import.meta.env.DEV) {
+    console.log('🌳 renderBinaryTree: Rendering pipeline completed successfully');
+  }
 }
