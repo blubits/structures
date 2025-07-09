@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { Plus, Search, ArrowDown, ArrowUp, Trash2, Menu } from "lucide-react";
-import { useBST } from "@/structures/BinaryTree/variants/BST/BSTProvider";
+import { useBST } from "@structures/BinaryTree/variants/BST";
 import { createOperation } from "@/lib/core/types";
 import {
   generateBSTInsertStates,
   generateBSTSearchStates,
   generateBSTFindMinStates,
   generateBSTFindMaxStates,
-} from "@/structures/BinaryTree/variants/BST/algorithms";
-import { OperationMenu } from "@/components/OperationsMenu";
-import type { OperationMenuItem } from "@/components/OperationsMenu";
+} from "@structures/BinaryTree/variants/BST/algorithms";
+import { OperationMenu } from "@components/OperationsMenu";
+import type { OperationMenuItem } from "@components/OperationsMenu";
 
 interface BSTOperationsMenuProps {
   isExecuting: boolean;

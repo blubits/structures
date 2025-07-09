@@ -18,5 +18,10 @@ export { BinaryTreeVisualizer } from '@structures/BinaryTree/components/BinaryTr
 // Algorithms
 export { BinaryTreeStateBuilder } from '@/structures/BinaryTree/utils/BinaryTreeStateBuilder';
 
+// Animation registration and helpers
+export { registerBinaryTreeAnimations, processBinaryTreeAnimations } from '@structures/BinaryTree/animations';
+
+// Renderer
+export { renderBinaryTree } from '@structures/BinaryTree/renderer';
+
 // BST-specific exports (re-exported from BST subdirectory)
-export * from '@structures/BinaryTree/variants/BST';

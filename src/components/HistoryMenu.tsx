@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from "react";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "@components/ui";
 import { History, Play, RotateCcw, Undo, Redo } from "lucide-react";
 
 /**

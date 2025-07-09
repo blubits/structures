@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { useBST } from "@/structures/BinaryTree/variants/BST/BSTProvider";
-import { OperationControls, type OperationStep } from "@/components/OperationControls";
+import { useBST } from "@structures/BinaryTree/variants/BST";
+import { OperationControls, type OperationStep } from "@components/OperationControls";
 
 interface BSTOperationControlsProps {
   isPlaying: boolean;

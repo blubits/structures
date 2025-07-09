@@ -18,6 +18,7 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, './src'),
       '@structures': resolve(__dirname, './src/structures'),
+      '@components': resolve(__dirname, './src/components'),
       'react': resolve(__dirname, './node_modules/react'),
       'react-dom': resolve(__dirname, './node_modules/react-dom'),
     },

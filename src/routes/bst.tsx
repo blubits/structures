@@ -3,14 +3,12 @@ import { useState, useEffect } from "react";
 import {
   BSTProvider,
   useBST,
-  BinaryTreeVisualizer,
   BSTOperationsMenu,
-  BSTOperationControls,
-  normalizeBinaryTree,
-  type BinaryTree
-} from "@/structures/BinaryTree";
-import { HistoryMenu, type HistoryOperation } from "@/components/HistoryMenu";
-import { DebugPanel } from "@/components/DebugPanel";
+  BSTOperationControls
+} from "@structures/BinaryTree/variants/BST";
+import { BinaryTreeVisualizer, normalizeBinaryTree, type BinaryTree } from "@structures/BinaryTree";
+import { HistoryMenu, type HistoryOperation } from "@components/HistoryMenu";
+import { DebugPanel } from "@components/DebugPanel";
 import { 
   Plus, 
   Search, 

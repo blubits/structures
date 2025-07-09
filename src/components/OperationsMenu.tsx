@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
+import { Popover, PopoverTrigger, PopoverContent } from "@components/ui";
 import type { ReactNode, CSSProperties } from "react";
 
 /**
