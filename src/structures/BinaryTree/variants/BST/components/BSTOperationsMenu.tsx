@@ -10,6 +10,7 @@ import {
 } from "@structures/BinaryTree/variants/BST/algorithms";
 import { OperationMenu } from "@components/OperationsMenu";
 import type { OperationMenuItem } from "@components/OperationsMenu";
+import { loggers } from "@/lib/core";
 
 interface BSTOperationsMenuProps {
   isExecuting: boolean;
@@ -50,7 +51,7 @@ export function BSTOperationsMenu({ isExecuting }: BSTOperationsMenuProps) {
 
   const handleDelete = () => {
     // TODO: Implement delete operation
-    console.log("Delete operation not yet implemented");
+    loggers.bst.warn("Delete operation not yet implemented");
     setDeleteValue(Math.floor(Math.random() * 50) + 1);
   };
 

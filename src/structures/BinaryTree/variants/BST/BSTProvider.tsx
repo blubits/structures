@@ -4,6 +4,7 @@ import { HistoryController } from '@/lib/core/History';
 import { normalizeBinaryTree } from '@/structures/BinaryTree/types';
 import type { BinaryTree } from '@/structures/BinaryTree/types';
 import { registerBinaryTreeAnimations } from '@/structures/BinaryTree/animations';
+import { loggers } from '@/lib/core';
 
 // Register animations on module load
 registerBinaryTreeAnimations();
@@ -41,12 +42,12 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
     const initialState = initialTree ? normalizeBinaryTree(initialTree) : normalizeBinaryTree({ root: null, name: "Empty BST" });
     const controller = new HistoryController<BinaryTree>(initialState);
     
-    if (import.meta.env.DEV) {
-      console.log('🏗️ BSTProvider: History controller initialized', {
+    loggers.build.info('History controller initialized', {
+      data: {
         hasInitialTree: !!initialTree,
         initialState: initialState
-      });
-    }
+      }
+    });
     return controller;
   }, [initialTree]);
 
@@ -65,14 +66,14 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
   useEffect(() => {
     const unsubscribe = historyController.subscribe(() => {
       const newState = historyController.getCurrentVisualizationState();
-      if (import.meta.env.DEV) {
-        console.log('🏗️ BSTProvider: State change detected', {
+      loggers.build.debug('State change detected', {
+        data: {
           hasNewState: !!newState,
           stateName: newState?.name,
           hasRoot: !!newState?.root,
           rootValue: newState?.root?.value
-        });
-      }
+        }
+      });
       if (newState) {
         setCurrentState(newState);
       }

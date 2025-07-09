@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 import { processBinaryTreeAnimations } from '@/structures/BinaryTree/animations';
 import type { BinaryTreeNode } from '@structures/BinaryTree/types';
 import type { AnimationHint } from '@/lib/core/types';
+import { loggers } from '@/lib/core';
 import { BINARY_TREE_COLORS } from '@structures/BinaryTree/config.colors';
 import {
   calculateTreeLayout,
@@ -53,25 +54,20 @@ export function renderBinaryTree(
   visualState: BinaryTreeVisualState,
   isFirstRender: boolean = false
 ): void {
-  if (import.meta.env.DEV) {
-    console.log('🌳 renderBinaryTree: Function called', {
-      hasSvgElement: !!svgElement,
-      hasTree: !!visualState.tree,
-      treeValue: visualState.tree?.value,
-      theme: visualState.theme,
-      animationSpeed: visualState.animationSpeed,
-      animationHintsCount: visualState.animationHints?.length || 0,
-      isFirstRender,
-      stackTrace: new Error().stack?.split('\n').slice(1, 6) // First 5 stack frames
-    });
-  }
+  loggers.renderer.enter('renderBinaryTree', {
+    hasSvgElement: !!svgElement,
+    hasTree: !!visualState.tree,
+    treeValue: visualState.tree?.value,
+    theme: visualState.theme,
+    animationSpeed: visualState.animationSpeed,
+    animationHintsCount: visualState.animationHints?.length || 0,
+    isFirstRender,
+  });
 
   const { tree, theme } = visualState;
   
   if (!tree) {
-    if (import.meta.env.DEV) {
-      console.log('🌳 renderBinaryTree: No tree data, clearing SVG');
-    }
+    loggers.renderer.info('No tree data, clearing SVG');
     const svg = d3.select(svgElement);
     svg.selectAll('*').remove();
     
@@ -133,27 +129,27 @@ export function renderBinaryTree(
   const positions = calculateTreeLayout(tree, CONFIG);
   const allPositions = Array.from(positions.values());
   
-  if (import.meta.env.DEV) {
-    console.log('🌳 STEP 1 - Assignment: Layout calculated', {
+  loggers.renderer.step('Assignment: Layout calculated', 1, {
+    data: {
       positionsCount: positions.size,
       allPositionsLength: allPositions.length,
       positions: Object.fromEntries(positions)
-    });
-  }
+    }
+  });
   
   if (allPositions.length === 0) return;
 
   // Collect all nodes and links with assigned IDs
   const { nodes, links } = collectNodesAndLinks(tree, positions);
 
-  if (import.meta.env.DEV) {
-    console.log('🌳 STEP 1 - Assignment: Collected nodes and links with IDs', {
+  loggers.renderer.step('Assignment: Collected nodes and links with IDs', 1, {
+    data: {
       nodesCount: nodes.length,
       linksCount: links.length,
       nodes: nodes.map((n: NodeData) => ({ value: n.value, id: n.id, state: n.state })),
       links: links.map((l: LinkData) => ({ id: l.id, sourceValue: l.sourceValue, targetValue: l.targetValue }))
-    });
-  }
+    }
+  });
 
   // ============================================================================
   // STEP 2: RECONCILIATION
@@ -216,15 +212,15 @@ export function renderBinaryTree(
   // Get color scheme for styling
   const colors = CONFIG.colors[theme];
 
-  if (import.meta.env.DEV) {
-    console.log('� STEP 2 - Reconciliation: SVG structure prepared', { 
+  loggers.renderer.step('Reconciliation: SVG structure prepared', 2, {
+    data: {
       theme, 
       colors,
       bounds,
       contentWidth,
       contentHeight
-    });
-  }
+    }
+  });
 
   // Track previous node states for reconciliation
   const prevNodeStates: Map<string | number, string> = (renderBinaryTree as any)._prevNodeStates || new Map();
@@ -237,12 +233,12 @@ export function renderBinaryTree(
   // Determine elements that need to be added, deleted, or updated using D3 joins
   // ============================================================================
 
-  if (import.meta.env.DEV) {
-    console.log('🌳 STEP 3 - Diffing: Preparing D3 joins for reconciliation', {
+  loggers.renderer.step('Diffing: Preparing D3 joins for reconciliation', 3, {
+    data: {
       animationDuration,
       isFirstRender
-    });
-  }
+    }
+  });
 
   // ============================================================================
   // STEP 4: RENDERING AND STYLING
@@ -399,12 +395,12 @@ export function renderBinaryTree(
         .attr('stroke-width', 2);
     });
 
-  if (import.meta.env.DEV) {
-    console.log('🌳 STEP 4 - Rendering and styling: Elements rendered and styled', {
+  loggers.renderer.step('Rendering and styling: Elements rendered and styled', 4, {
+    data: {
       nodeElementsCount: nodeElements.size(),
       linksRendered: linkGroup.selectAll('line').size()
-    });
-  }
+    }
+  });
 
   // ============================================================================
   // STEP 5: ANIMATION
@@ -412,18 +408,19 @@ export function renderBinaryTree(
   // ============================================================================
   // Handle all animations using the animation layer
   if (visualState.animationHints && visualState.animationHints.length > 0) {
-    if (import.meta.env.DEV) {
-      console.log('� STEP 5 - Animation: Processing animations with hints', {
+    loggers.renderer.step('Animation: Processing animations with hints', 5, {
+      data: {
         hintsCount: visualState.animationHints.length,
         hints: visualState.animationHints.map(h => ({ type: h.type, metadata: h.metadata }))
-      });
-    }
+      }
+    });
 
     // Create element provider function that handles both old and new ID formats
     const elementProvider = (elementId: string): Element | null => {
-      if (import.meta.env.DEV) {
-        console.log('🎬 Element provider called with ID:', elementId);
-      }
+      loggers.animation.debug('Element provider called', { 
+        function: 'elementProvider',
+        data: { elementId }
+      });
 
       // Check if it's a link ID (format: "sourceValue-targetValue" for animations)
       if (elementId.includes('-') && !elementId.includes('node-')) {
@@ -446,9 +443,9 @@ export function renderBinaryTree(
           });
           
           if (linkElement) {
-            if (import.meta.env.DEV) {
-              console.log('🎬 Found link element by values:', { sourceValue, targetValue, linkElement });
-            }
+            loggers.animation.debug('Found link element by values', { 
+              data: { sourceValue, targetValue, linkElement }
+            });
             return linkElement as Element;
           }
         }
@@ -460,9 +457,9 @@ export function renderBinaryTree(
           // Find node by ID attribute
           const nodeElement = mainGroup.select(`[data-node-id="${elementId}"]`).node();
           if (nodeElement) {
-            if (import.meta.env.DEV) {
-              console.log('🎬 Found node element by ID:', { elementId, nodeElement });
-            }
+            loggers.animation.debug('Found node element by ID', { 
+              data: { elementId, nodeElement }
+            });
             return nodeElement as Element;
           }
         } else {
@@ -470,17 +467,17 @@ export function renderBinaryTree(
           const nodeValue = Number(elementId);
           const nodeElement = mainGroup.select(`[data-node-value="${nodeValue}"]`).node();
           if (nodeElement) {
-            if (import.meta.env.DEV) {
-              console.log('🎬 Found node element by value:', { nodeValue, nodeElement });
-            }
+            loggers.animation.debug('Found node element by value', { 
+              data: { nodeValue, nodeElement }
+            });
             return nodeElement as Element;
           }
         }
       }
       
-      if (import.meta.env.DEV) {
-        console.warn('🎬 Element provider could not find element for ID:', elementId);
-      }
+      loggers.animation.warn('Element provider could not find element', { 
+        data: { elementId }
+      });
       return null;
     };
 
@@ -492,15 +489,11 @@ export function renderBinaryTree(
       elementProvider
     );
 
-    if (import.meta.env.DEV) {
-      console.log('🌳 STEP 5 - Animation: Animations processed successfully');
-    }
+    loggers.renderer.step('Animation: Animations processed successfully', 5);
   }
 
   // Store prevNodeStates for next render (part of reconciliation state)
   (renderBinaryTree as any)._prevNodeStates = prevNodeStates;
 
-  if (import.meta.env.DEV) {
-    console.log('🌳 renderBinaryTree: Rendering pipeline completed successfully');
-  }
+  loggers.renderer.exit('renderBinaryTree');
 }

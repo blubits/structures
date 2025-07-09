@@ -6,7 +6,8 @@ import {
   BSTOperationsMenu,
   BSTOperationControls
 } from "@structures/BinaryTree/variants/BST";
-import { BinaryTreeVisualizer, normalizeBinaryTree, type BinaryTree } from "@structures/BinaryTree";
+import { BinaryTreeVisualizer } from "@structures/BinaryTree/components/BinaryTreeVisualizer";
+import { normalizeBinaryTree, type BinaryTree } from "@structures/BinaryTree";
 import { HistoryMenu, type HistoryOperation } from "@components/HistoryMenu";
 import { DebugPanel } from "@components/DebugPanel";
 import { 
@@ -15,6 +16,7 @@ import {
   ArrowDown, 
   ArrowUp,
 } from "lucide-react";
+import { loggers } from "@/lib/core";
 
 // Create initial BST tree declaratively using plain object syntax
 const createInitialBST = (): BinaryTree => {
@@ -75,15 +77,15 @@ function BSTPageContent() {
 
   // Debug logging for current state
   useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log('📄 BSTPageContent: Current state updated', {
+    loggers.page.debug('Current state updated', {
+      data: {
         hasCurrentState: !!currentState,
         stateName: currentState?.name,
         hasRoot: !!currentState?.root,
         rootValue: currentState?.root?.value,
         isExecuting
-      });
-    }
+      }
+    });
   }, [currentState, isExecuting]);
 
   // Convert history controller history to HistoryMenu format

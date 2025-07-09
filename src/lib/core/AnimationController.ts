@@ -3,6 +3,7 @@
  */
 
 import type { AnimationHint } from '@/lib/core/types';
+import { loggers } from '@/lib/core/Logger';
 
 /**
  * Generic animation context - contains minimal required information
@@ -104,11 +105,11 @@ export class AnimationController {
   static registerVisualization(visualizationType: string, config: VisualizationAnimationConfig): void {
     this.visualizationConfigs.set(visualizationType, config);
     
-    if (import.meta.env.DEV) {
-      console.log(`🎬 Registered visualization: ${visualizationType}`, {
+    loggers.animation.info(`Registered visualization: ${visualizationType}`, {
+      data: {
         animationTypes: Array.from(config.animations.keys())
-      });
-    }
+      }
+    });
   }
 
   /**
@@ -150,26 +151,26 @@ export class AnimationController {
   ): void {
     const config = this.visualizationConfigs.get(visualizationType);
     if (!config) {
-      console.warn(`Visualization type '${visualizationType}' not registered`);
+      loggers.animation.warn(`Visualization type '${visualizationType}' not registered`);
       context.onComplete?.();
       return;
     }
 
     const registration = config.animations.get(animationType);
     if (!registration) {
-      console.warn(`Animation type '${animationType}' not found for visualization '${visualizationType}'`);
+      loggers.animation.warn(`Animation type '${animationType}' not found for visualization '${visualizationType}'`);
       context.onComplete?.();
       return;
     }
 
-    if (import.meta.env.DEV) {
-      console.log(`🎬 Executing animation: ${visualizationType}.${animationType}`);
-    }
+    loggers.animation.info(`Executing animation: ${visualizationType}.${animationType}`);
 
     try {
       registration.animationFunction(context);
     } catch (error) {
-      console.error(`Error executing animation '${animationType}' for '${visualizationType}':`, error);
+      loggers.animation.error(`Error executing animation '${animationType}' for '${visualizationType}'`, { 
+        error: error as Error 
+      });
       context.onComplete?.();
     }
   }
@@ -193,7 +194,7 @@ export class AnimationController {
   ): void {
     const config = this.visualizationConfigs.get(visualizationType);
     if (!config) {
-      console.warn(`Visualization type '${visualizationType}' not registered`);
+      loggers.animation.warn(`Visualization type '${visualizationType}' not registered`);
       onComplete?.();
       return;
     }
@@ -203,9 +204,7 @@ export class AnimationController {
       return;
     }
 
-    if (import.meta.env.DEV) {
-      console.log(`🎬 Processing ${hints.length} animation hints for ${visualizationType}`);
-    }
+    loggers.animation.info(`Processing ${hints.length} animation hints for ${visualizationType}`);
 
     // Use the visualization's hint processing logic
     const elementHints = config.processHints(hints);
@@ -229,7 +228,7 @@ export class AnimationController {
     elementHints.forEach((elementAnimations, elementId) => {
       const element = elementProvider(elementId);
       if (!element) {
-        console.warn(`Element not found for ID: ${elementId}`);
+        loggers.animation.warn(`Element not found for ID: ${elementId}`);
         handleElementComplete();
         return;
       }
@@ -327,9 +326,7 @@ export function createSimpleHintProcessor(
     hints.forEach(hint => {
       const elementType = animationTypeToElementType.get(hint.type);
       if (!elementType) {
-        if (import.meta.env.DEV) {
-          console.warn(`Unknown animation type: ${hint.type}`);
-        }
+        loggers.animation.warn(`Unknown animation type: ${hint.type}`);
         return;
       }
       
@@ -366,12 +363,12 @@ export function createSimpleElementAnimationExecutor(
       return;
     }
 
-    if (import.meta.env.DEV) {
-      console.log(`🎬 Executing animations for element: ${elementId}`, {
+    loggers.animation.debug(`Executing animations for element: ${elementId}`, {
+      data: {
         hintsCount: hints.length,
         hints: hints.map(h => ({ type: h.type, sequence: h.sequence }))
-      });
-    }
+      }
+    });
 
     // Sort hints by sequence number (lower = earlier)
     const sortedHints = [...hints].sort((a, b) => (a.sequence || 0) - (b.sequence || 0));

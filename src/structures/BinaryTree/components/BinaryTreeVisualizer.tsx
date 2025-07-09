@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useMemo } from "react";
 import { useTheme } from "@components/ThemeProvider";
 import { normalizeBinaryTree, reconcileBinaryTree, arrayEqual, type BinaryTree, registerBinaryTreeAnimations, renderBinaryTree } from "@structures/BinaryTree";
+import { loggers } from "@/lib/core";
 
 // Initialize animations once when the module loads
 let animationsInitialized = false;
@@ -37,9 +38,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
   // Initialize animations on first mount
   useEffect(() => {
     if (!animationsInitialized) {
-      if (import.meta.env.DEV) {
-        console.log('🎬 BinaryTreeVisualizer: Initializing animations...');
-      }
+      loggers.visualizer.info('Initializing animations');
       registerBinaryTreeAnimations();
       animationsInitialized = true;
     }
@@ -50,15 +49,15 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
 
   // Process the tree state with optional reconciliation for efficiency
   const processedTree = useMemo(() => {
-    if (import.meta.env.DEV) {
-      console.log('🔄 BinaryTreeVisualizer: Processing tree state', {
+    loggers.visualizer.debug('Processing tree state', {
+      data: {
         renderCount: renderCount.current,
         hasState: !!state,
         enableReconciliation,
         prevTree: prevTreeRef.current?.name,
         newName: state?.name,
-      });
-    }
+      }
+    });
 
     let normalizedTree: BinaryTree;
 
@@ -67,25 +66,25 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
       normalizedTree = reconcileBinaryTree(prevTreeRef.current, state);
       prevTreeRef.current = normalizedTree;
 
-      if (import.meta.env.DEV) {
-        console.log('🔄 BinaryTreeVisualizer: Reconciliation complete', {
+      loggers.visualizer.debug('Reconciliation complete', {
+        data: {
           hasRoot: !!normalizedTree.root,
           rootValue: normalizedTree.root?.value,
           rootId: normalizedTree.root?.id,
           animationHintsCount: normalizedTree.animationHints?.length || 0,
-        });
-      }
+        }
+      });
     } else {
       // Simple normalization without reconciliation
       normalizedTree = normalizeBinaryTree(state);
 
-      if (import.meta.env.DEV) {
-        console.log('🔄 BinaryTreeVisualizer: Normalization complete', {
+      loggers.visualizer.debug('Normalization complete', {
+        data: {
           hasRoot: !!normalizedTree.root,
           rootValue: normalizedTree.root?.value,
           animationHintsCount: normalizedTree.animationHints?.length || 0,
-        });
-      }
+        }
+      });
     }
 
     return normalizedTree;
@@ -93,8 +92,8 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
 
   // Create visual state for the renderer with deep comparison for state object
   const visualState = useMemo(() => {
-    if (import.meta.env.DEV) {
-      console.log('🎨 BinaryTreeVisualizer: Creating visual state', {
+    loggers.visualizer.debug('Creating visual state', {
+      data: {
         renderCount: renderCount.current,
         hasState: !!state,
         hasRoot: !!processedTree?.root,
@@ -102,8 +101,8 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
         rootValue: processedTree?.root?.value,
         animationHintsCount: processedTree?.animationHints?.length || 0,
         stateObjectId: `state-${JSON.stringify(processedTree?.name)}`
-      });
-    }
+      }
+    });
 
     const newVisualState = {
       tree: processedTree.root,
@@ -112,9 +111,9 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
       animationHints: processedTree.animationHints // Only source of animation data
     };
 
-    if (import.meta.env.DEV) {
-      console.log('🎨 BinaryTreeVisualizer: New visual state created', newVisualState);
-    }
+    loggers.visualizer.debug('New visual state created', { 
+      data: newVisualState 
+    });
 
     return newVisualState;
   }, [
@@ -125,15 +124,15 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
 
   // Initialize and update the renderer
   useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log('🖼️ BinaryTreeVisualizer: useEffect triggered', {
+    loggers.visualizer.debug('useEffect triggered', {
+      data: {
         renderCount: renderCount.current,
         hasSvgRef: !!svgRef.current,
         hasContainerRef: !!containerRef.current,
         isInitialized: isInitialized.current,
-        stackTrace: new Error().stack?.split('\n').slice(1, 4) // First 3 stack frames
-      });
-    }
+      },
+      stackDepth: 3
+    });
 
     if (!svgRef.current || !containerRef.current) return;
     
@@ -143,9 +142,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
         prevVisualStateRef.current.theme === visualState.theme &&
         prevVisualStateRef.current.animationSpeed === visualState.animationSpeed &&
         arrayEqual(prevVisualStateRef.current.animationHints, visualState.animationHints)) {
-      if (import.meta.env.DEV) {
-        console.log('🖼️ BinaryTreeVisualizer: Skipping render - no changes detected');
-      }
+      loggers.visualizer.debug('Skipping render - no changes detected');
       return;
     }
 
@@ -154,19 +151,15 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
     try {
       const isFirstRender = !isInitialized.current;
       if (isFirstRender) {
-        if (import.meta.env.DEV) {
-          console.log('🖼️ BinaryTreeVisualizer: First render, initializing...');
-        }
+        loggers.visualizer.info('First render, initializing');
         renderBinaryTree(svgRef.current, visualState, true);
         isInitialized.current = true;
       } else {
-        if (import.meta.env.DEV) {
-          console.log('🖼️ BinaryTreeVisualizer: Re-render update...');
-        }
+        loggers.visualizer.info('Re-render update');
         renderBinaryTree(svgRef.current, visualState, false);
       }
     } catch (error) {
-      console.error('Error rendering binary tree:', error);
+      loggers.visualizer.error('Error rendering binary tree', { error: error as Error });
     }
   }, [visualState]);
 
@@ -174,21 +167,19 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
   useEffect(() => {
     if (!containerRef.current || disableResize) return;
 
-    if (import.meta.env.DEV) {
-      console.log('🔍 BinaryTreeVisualizer: Setting up ResizeObserver');
-    }
+    loggers.resize.debug('Setting up ResizeObserver');
 
     let resizeTimeout: NodeJS.Timeout | null = null;
 
     const resizeObserver = new ResizeObserver(() => {
-      if (import.meta.env.DEV) {
-        console.log('🔍 BinaryTreeVisualizer: ResizeObserver callback triggered', {
+      loggers.resize.debug('ResizeObserver callback triggered', {
+        data: {
           isInitialized: isInitialized.current,
           hasSvgRef: !!svgRef.current,
           hasContainerRef: !!containerRef.current,
           hasTimeout: !!resizeTimeout
-        });
-      }
+        }
+      });
       
       // Clear any pending resize handling
       if (resizeTimeout) {
@@ -197,9 +188,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
 
       // Debounce resize handling to prevent infinite loops
       resizeTimeout = setTimeout(() => {
-        if (import.meta.env.DEV) {
-          console.log('🔍 BinaryTreeVisualizer: Executing debounced resize');
-        }
+        loggers.resize.debug('Executing debounced resize');
         
         if (isInitialized.current && svgRef.current && containerRef.current) {
           // Temporarily disconnect the observer to prevent recursive calls
@@ -229,9 +218,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
     resizeObserver.observe(containerRef.current);
 
     return () => {
-      if (import.meta.env.DEV) {
-        console.log('🔍 BinaryTreeVisualizer: Disconnecting ResizeObserver');
-      }
+      loggers.resize.debug('Disconnecting ResizeObserver');
       if (resizeTimeout) {
         clearTimeout(resizeTimeout);
       }

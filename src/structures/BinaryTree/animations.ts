@@ -13,6 +13,7 @@ import type {
   GenericAnimationContext
 } from '@/lib/core/AnimationController';
 import type { AnimationHint } from '@/lib/core/types';
+import { loggers } from '@/lib/core';
 import * as d3 from 'd3';
 import { BINARY_TREE_COLORS } from '@structures/BinaryTree/config.colors';
 
@@ -34,13 +35,14 @@ const traverseDownAnimation = (context: GenericAnimationContext): void => {
   const { element, hint } = context;
   const duration = hint.duration || 600;
   
-  if (import.meta.env.DEV) {
-    console.log('🎬 Executing traverse-down animation:', {
+  loggers.animation.debug('Executing traverse-down animation', {
+    function: 'traverseDownAnimation',
+    data: {
       elementType: element.tagName,
       duration,
       metadata: hint.metadata
-    });
-  }
+    }
+  });
   
   // Find the actual DOM positions by looking at the link's coordinates
   const linkElement = d3.select(element as SVGLineElement);
@@ -49,12 +51,12 @@ const traverseDownAnimation = (context: GenericAnimationContext): void => {
   const x2 = parseFloat(linkElement.attr('x2') || '0');
   const y2 = parseFloat(linkElement.attr('y2') || '0');
   
-  if (import.meta.env.DEV) {
-    console.log('🎬 Animation coordinates:', { x1, y1, x2, y2 });
-  }
+  loggers.animation.debug('Animation coordinates', { 
+    data: { x1, y1, x2, y2 }
+  });
   
   if (!element.parentNode) {
-    console.warn('Animation element has no parent node');
+    loggers.animation.warn('Animation element has no parent node');
     context.onComplete?.();
     return;
   }
@@ -81,9 +83,9 @@ const traverseDownAnimation = (context: GenericAnimationContext): void => {
     .attr('cx', x1)
     .attr('cy', y1);
 
-  if (import.meta.env.DEV) {
-    console.log('🎬 Created traveling dot:', dotClass);
-  }
+  loggers.animation.debug('Created traveling dot', { 
+    data: { dotClass }
+  });
 
   // Animate the dot appearing, traveling, and disappearing
   // Step 1: Fade in
@@ -92,9 +94,9 @@ const traverseDownAnimation = (context: GenericAnimationContext): void => {
     .duration(100)
     .attr('opacity', 0.9)
     .on('end', () => {
-      if (import.meta.env.DEV) {
-        console.log('🎬 Fade-in complete, starting travel from:', { x1, y1, x2, y2 });
-      }
+      loggers.animation.debug('Fade-in complete, starting travel', { 
+        data: { x1, y1, x2, y2 }
+      });
       
       // Step 2: Travel from source to target
       dot
@@ -104,9 +106,7 @@ const traverseDownAnimation = (context: GenericAnimationContext): void => {
         .attr('cx', x2)
         .attr('cy', y2)
         .on('end', () => {
-          if (import.meta.env.DEV) {
-            console.log('🎬 Travel complete, starting fade-out');
-          }
+          loggers.animation.debug('Travel complete, starting fade-out');
           
           // Step 3: Fade out and expand
           dot
@@ -117,9 +117,9 @@ const traverseDownAnimation = (context: GenericAnimationContext): void => {
             .on('end', () => {
               // Clean up the dot element
               dot.remove();
-              if (import.meta.env.DEV) {
-                console.log('🎬 Animation completed:', dotClass);
-              }
+              loggers.animation.debug('Animation completed', { 
+                data: { dotClass }
+              });
               context.onComplete?.();
             });
         });
@@ -201,16 +201,14 @@ export function registerAnimationHints(
  * Call this function during application initialization.
  */
 export function registerBinaryTreeAnimations(): void {
-  if (import.meta.env.DEV) {
-    console.log('🎬 Registering binary tree animations with AnimationController...');
-  }
+  loggers.animation.info('Registering binary tree animations with AnimationController');
   registerAnimationHints(AnimationController, 'binary-tree', [traverseDown]);
-  if (import.meta.env.DEV) {
-    console.log('🎬 Registered binary tree visualization:', {
+  loggers.animation.info('Registered binary tree visualization', {
+    data: {
       animationTypes: ['traverse-down'],
       registeredVisualizations: AnimationController.getRegisteredVisualizations()
-    });
-  }
+    }
+  });
 }
 
 /**
