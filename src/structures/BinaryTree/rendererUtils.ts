@@ -1,7 +1,7 @@
 import type { BinaryTreeNode } from '@structures/BinaryTree/types';
 
 /**
- * Types for nodes and links data
+ * Data structure for node rendering information.
  */
 export type NodeData = {
   value: number;
@@ -11,6 +11,9 @@ export type NodeData = {
   id?: string; // Include node ID for better reconciliation
 };
 
+/**
+ * Data structure for link rendering information.
+ */
 export type LinkData = {
   source: { x: number; y: number };
   target: { x: number; y: number };
@@ -20,7 +23,7 @@ export type LinkData = {
 };
 
 /**
- * Calculate positions for tree nodes using a simple algorithm
+ * Calculates node positions for a binary tree layout.
  */
 export function calculateTreeLayout(root: BinaryTreeNode | null, CONFIG: any): Map<number, {x: number, y: number}> {
   const positions = new Map<number, {x: number, y: number}>();
@@ -76,7 +79,7 @@ export function calculateTreeLayout(root: BinaryTreeNode | null, CONFIG: any): M
 }
 
 /**
- * Helper function to get node fill color based on state
+ * Returns the fill color for a node based on its state.
  */
 export function getNodeFillColor(state: string, colors: any): string {
   switch (state) {
@@ -87,7 +90,7 @@ export function getNodeFillColor(state: string, colors: any): string {
 }
 
 /**
- * Helper function to get animation duration based on speed
+ * Returns the animation duration in ms for a given speed.
  */
 export function getAnimationDuration(speed: 'slow' | 'normal' | 'fast'): number {
   switch (speed) {
@@ -98,8 +101,7 @@ export function getAnimationDuration(speed: 'slow' | 'normal' | 'fast'): number 
 }
 
 /**
- * Collect all nodes and links for rendering with stable IDs for reconciliation.
- * Links are handled separately from nodes for efficient D3 join operations.
+ * Collects all nodes and links for rendering, assigning stable IDs for reconciliation.
  */
 export function collectNodesAndLinks(
   tree: BinaryTreeNode,

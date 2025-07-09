@@ -2,6 +2,9 @@ import { useState } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "./ui/popover";
 import type { ReactNode, CSSProperties } from "react";
 
+/**
+ * Represents a single item in the operation menu, including its label, icon, click handler, and optional input properties.
+ */
 export interface OperationMenuItem {
   label: string;
   icon: ReactNode;
@@ -22,6 +25,9 @@ export interface OperationMenuItem {
   className?: string;
 }
 
+/**
+ * Props for the OperationMenu component, including the list of items, trigger icon, and optional styling.
+ */
 export interface OperationMenuProps {
   items: OperationMenuItem[];
   triggerIcon: ReactNode;
@@ -29,6 +35,9 @@ export interface OperationMenuProps {
   position?: CSSProperties;
 }
 
+/**
+ * Renders a popover menu for selecting and interacting with operations, supporting grouping, icons, and optional input fields for each item.
+ */
 export function OperationMenu({
   items,
   triggerIcon,
@@ -85,10 +94,7 @@ export function OperationMenu({
                       } ${item.className || ""}`}
                       style={{ minHeight: '32px' }}
                     >
-                      {/* Render icon directly, no background/border */}
-                      {item.icon && (
-                        <span className="w-5 h-5 flex items-center justify-center">{item.icon}</span>
-                      )}
+                      <span className="w-5 h-5 flex items-center justify-center">{item.icon}</span>
                       <span className="flex-1 text-sm font-medium text-gray-800 dark:text-gray-200 flex items-center min-h-[28px]">
                         {item.label}
                       </span>

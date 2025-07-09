@@ -15,6 +15,9 @@ interface BinaryTreeVisualizerProps {
   enableReconciliation?: boolean; // Enable smart reconciliation for performance
 }
 
+/**
+ * React component for visualizing a binary tree with animation, reconciliation, and responsive design.
+ */
 export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
   state,
   animationSpeed = 'normal',

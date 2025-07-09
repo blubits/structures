@@ -15,6 +15,9 @@ interface BSTOperationsMenuProps {
   isExecuting: boolean;
 }
 
+/**
+ * Menu component for BST operations (insert, search, delete, min, max) with input controls and action handlers.
+ */
 export function BSTOperationsMenu({ isExecuting }: BSTOperationsMenuProps) {
   const { historyController, currentState } = useBST();
   const [insertValue, setInsertValue] = useState(() => Math.floor(Math.random() * 50) + 1);

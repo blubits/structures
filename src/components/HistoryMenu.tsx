@@ -2,6 +2,9 @@ import { type ReactNode, useState } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { History, Play, RotateCcw, Undo, Redo } from "lucide-react";
 
+/**
+ * Represents a single operation in the history timeline, including its type, description, value, and associated states.
+ */
 export interface HistoryOperation {
   id?: string;
   type: string;
@@ -25,6 +28,9 @@ interface HistoryMenuProps {
   isExecuting?: boolean;
 }
 
+/**
+ * Renders a popover menu displaying the operation history timeline, allowing users to select, undo, redo, or clear operations.
+ */
 export function HistoryMenu({
   operations,
   selectedOperationIndex,

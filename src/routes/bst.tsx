@@ -46,12 +46,15 @@ const createInitialBST = (): BinaryTree => {
   return normalizeBinaryTree(bstSpec);
 };
 
+/**
+ * Route for the main BST visualization page using the new renderer architecture.
+ */
 export const Route = createFileRoute('/bst')({
   component: BSTPage,
 });
 
 /**
- * Main BST page component using the new renderer architecture
+ * Main BST page component that provides the BST context and initial tree.
  */
 function BSTPage() {
   // Create the initial tree declaratively
@@ -65,7 +68,7 @@ function BSTPage() {
 }
 
 /**
- * BST page content that has access to the BST context
+ * BST page content component with visualization, controls, and debug panels.
  */
 function BSTPageContent() {
   const { historyController, currentState, isExecuting, animationSpeed, setAnimationSpeed } = useBST();

@@ -9,6 +9,9 @@ interface BSTOperationControlsProps {
   onSpeedChange: (speed: 'slow' | 'normal' | 'fast') => void;
 }
 
+/**
+ * Operation controls for BST visualizations, providing step navigation and playback controls.
+ */
 export function BSTOperationControls({
   isPlaying,
   onPlayPause,

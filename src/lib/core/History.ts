@@ -25,13 +25,7 @@ interface ControllerState<TState extends DataStructureState> {
 }
 
 /**
- * Generic time-machine controller for any data structure.
- * 
- * Provides dual navigation:
- * - Macro: Jump between operations (insert → delete → search)
- * - Micro: Step through animation states within an operation
- * 
- * Uses immutable state updates and React's useSyncExternalStore for reactivity.
+ * Generic time-machine controller for any data structure. Provides dual navigation (macro and micro) and uses immutable state updates with React's useSyncExternalStore for reactivity.
  */
 export class HistoryController<TState extends DataStructureState = DataStructureState> {
   private operationHistory: OperationGroup<TState>[] = [];

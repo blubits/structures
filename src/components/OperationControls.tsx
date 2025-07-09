@@ -2,19 +2,13 @@ import { useState } from 'react';
 import { FaStepBackward, FaStepForward, FaPlay, FaPause, FaRedo, FaTachometerAlt } from 'react-icons/fa';
 
 /**
- * Generic Operation Controls Overlay
- * 
- * A reusable overlay component for controlling step-by-step operations
- * in any visualization system. Provides step-by-step operation controls
- * and detailed descriptions for any type of operation.
- * 
- * This component is visualization-agnostic and can be used with BST, 
- * sorting algorithms, graph algorithms, or any other step-by-step process.
+ * A reusable overlay component for controlling step-by-step operations in any visualization system,
+ * providing controls and descriptions for any type of operation. This component is visualization-agnostic
+ * and can be used with BST, sorting algorithms, graph algorithms, or any other step-by-step process.
  */
 
-
 /**
- * Generic interface for any operation that can be visualized step-by-step
+ * Generic interface for any operation that can be visualized step-by-step.
  */
 export interface Operation {
   /** Unique identifier for the operation */
@@ -30,7 +24,7 @@ export interface Operation {
 }
 
 /**
- * Generic interface for a step in any operation sequence
+ * Generic interface for a step in any operation sequence.
  */
 export interface OperationStep {
   /** Unique identifier for this step */
@@ -46,8 +40,7 @@ export interface OperationStep {
 }
 
 /**
- * Function type for generating step descriptions
- * Allows customization of step descriptions based on operation type and context
+ * Function type for generating step descriptions based on operation type and context.
  */
 export type StepDescriptionGenerator<TOperation extends Operation = Operation, TStep extends OperationStep = OperationStep> = (
   operation: TOperation,
@@ -93,17 +86,9 @@ interface OperationControlsProps<TOperation extends Operation = Operation, TStep
 }
 
 /**
- * OperationControls Component
- * 
- * Displays a semi-transparent overlay during operation visualization that shows:
- * - Current operation name and description
- * - Step progress (current step / total steps)
- * - Current step's detailed description and context
- * - Manual navigation controls for stepping through the operation
- * - Play/pause automatic playback functionality
- * 
- * The overlay automatically appears when an operation is selected and hides when not needed.
- * It's positioned in the bottom-center and can be customized through props.
+ * OperationControls Component: Displays an overlay during operation visualization with operation name,
+ * step progress, detailed step description, manual navigation controls, and play/pause functionality.
+ * The overlay appears when an operation is selected and is customizable through props.
  */
 export const OperationControls = <TOperation extends Operation = Operation, TStep extends OperationStep = OperationStep>({
   isActive,

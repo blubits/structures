@@ -13,8 +13,7 @@ import {
 } from '@/structures/BinaryTree/rendererUtils';
 
 /**
- * Visual state interface for the binary tree renderer
- * Now simplified to focus on pure data representation
+ * Visual state for the binary tree renderer, including tree data, animation speed, theme, and animation hints.
  */
 export interface BinaryTreeVisualState {
   tree: BinaryTreeNode | null;
@@ -47,8 +46,7 @@ const CONFIG = {
 let zoomBehavior: d3.ZoomBehavior<SVGSVGElement, unknown> | null = null;
 
 /**
- * Render the binary tree with D3 including zoom and pan functionality
- * Animation is now handled solely through AnimationController via hints
+ * Renders a binary tree using D3, including zoom, pan, and animation support via AnimationController.
  */
 export function renderBinaryTree(
   svgElement: SVGSVGElement, 

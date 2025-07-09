@@ -7,6 +7,9 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+/**
+ * Provides a theme context for toggling between dark and light modes, persisting user preference in localStorage.
+ */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [prefersDarkMode, setPrefersDarkMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -41,6 +44,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Custom hook to access the theme context and toggle dark/light mode.
+ */
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) {

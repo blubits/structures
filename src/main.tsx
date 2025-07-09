@@ -1,3 +1,7 @@
+/**
+ * Application entry point: sets up the router, theme provider, and renders the root React component.
+ */
+
 import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 import { RouterProvider, createRouter } from '@tanstack/react-router'

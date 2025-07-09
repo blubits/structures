@@ -1,12 +1,5 @@
 /**
- * Generic Animation Controller
- * 
- * A completely generic animation system that can work with any type of visualization.
- * Visualizations register their own animation types (e.g., 'node', 'link', 'graph', 'bar', etc.)
- * and provide the corresponding animation functions and metadata schemas.
- * 
- * This replaces the rigid Node/Link/Tree structure with a flexible system
- * that can accommodate any visualization type now or in the future.
+ * Generic Animation Controller for any visualization type. Visualizations register their own animation types and provide corresponding animation functions and metadata schemas, enabling a flexible system for any visualization now or in the future.
  */
 
 import type { AnimationHint } from '@/lib/core/types';

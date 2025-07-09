@@ -1,10 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { FaCubes } from 'react-icons/fa'
 
+/**
+ * Root index route for the application, displaying the landing page and navigation prompt.
+ */
 export const Route = createFileRoute('/')({
   component: App,
 })
 
+/**
+ * Landing page component for the application.
+ */
 function App() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-white dark:bg-zinc-900 transition-colors">

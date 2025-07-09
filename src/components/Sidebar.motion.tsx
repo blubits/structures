@@ -14,6 +14,9 @@ const navItems = [
 	},
 ];
 
+/**
+ * Sidebar navigation component for the application, supporting dark/light mode toggle and responsive mobile/desktop layouts.
+ */
 export default function Sidebar() {
 	const { prefersDarkMode, toggleTheme } = useTheme();
 	const [hovered, setHovered] = useState<string | null>(null);

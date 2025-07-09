@@ -1,8 +1,5 @@
 /**
- * Core types for the generic data structure visualization framework.
- * 
- * This module defines the base interfaces that all data structures must implement
- * to work with the time-machine architecture and animation system.
+ * Core types for the generic data structure visualization framework. Defines base interfaces for data structures to work with the time-machine architecture and animation system.
  */
 
 /**

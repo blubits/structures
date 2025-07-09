@@ -4,11 +4,7 @@ import { updateBinaryTreeNode, normalizeBinaryTree } from '@structures/BinaryTre
 import { traverseDown } from '@/structures/BinaryTree/animations';
 
 /**
- * Smart Binary Tree State Builder
- * 
- * This class tracks the current path through the tree automatically and provides
- * high-level operations for BST algorithms. It handles all the complexity of
- * path management, tree manipulation, and state creation.
+ * Smart state builder for binary trees, tracking the current path and providing high-level operations for BST algorithms.
  */
 export class BinaryTreeStateBuilder {
   private currentTree: BinaryTree;
