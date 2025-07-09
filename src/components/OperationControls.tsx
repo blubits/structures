@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FaStepBackward, FaStepForward, FaPlay, FaPause, FaRedo, FaTachometerAlt } from 'react-icons/fa';
-import { MdExpandMore, MdExpandLess } from 'react-icons/md';
 
 /**
  * Generic Operation Controls Overlay
@@ -91,8 +90,6 @@ interface OperationControlsProps<TOperation extends Operation = Operation, TStep
   animationSpeed?: 'slow' | 'normal' | 'fast';
   /** Callback for speed change */
   onSpeedChange?: (speed: 'slow' | 'normal' | 'fast') => void;
-  /** Debug content to render when debugVisible is true */
-  debugContent?: React.ReactNode;
 }
 
 /**
@@ -126,7 +123,6 @@ export const OperationControls = <TOperation extends Operation = Operation, TSte
   showSpeedControl = false,
   animationSpeed = 'normal',
   onSpeedChange,
-  debugContent,
 }: OperationControlsProps<TOperation, TStep>) => {
   // Don't render if not active or no steps available
   if (!isActive || !currentOperation || operationSteps.length === 0) {
@@ -134,7 +130,6 @@ export const OperationControls = <TOperation extends Operation = Operation, TSte
   }
 
   const [speedOpen, setSpeedOpen] = useState(false);
-  const [debugOpen, setDebugOpen] = useState(false);
 
   const currentStep = operationSteps[Math.max(0, Math.min(currentStepIndex, operationSteps.length - 1))];
   const isFirstStep = currentStepIndex <= 0;
@@ -241,28 +236,6 @@ export const OperationControls = <TOperation extends Operation = Operation, TSte
                 {key}: {String(value)}
               </span>
             ))}
-          </div>
-        )}
-        {/* Debug Panel Accordion */}
-        {debugContent && (
-          <div className="mt-2">
-            <button
-              onClick={() => setDebugOpen((v) => !v)}
-              className="flex items-center gap-1 text-purple-300 hover:text-purple-100 text-sm font-medium w-full justify-center"
-              title={debugOpen ? "Hide Debug Info" : "Show Debug Info"}
-            >
-              {debugOpen ? <MdExpandLess size={20} /> : <MdExpandMore size={20} />}
-              Debug Info
-            </button>
-            <div
-              className={`overflow-hidden transition-all duration-300 ${debugOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
-            >
-              {debugOpen && (
-                <div className="bg-gray-900 border border-purple-700 rounded-lg mt-2 px-4 py-3 text-xs text-purple-100">
-                  {debugContent}
-                </div>
-              )}
-            </div>
           </div>
         )}
       </div>

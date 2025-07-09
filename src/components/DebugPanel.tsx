@@ -10,6 +10,15 @@ interface DebugPanelProps {
   currentOperationIndex: number;
   currentAnimationIndex: number;
   isAnimating: boolean;
+  // New props for step debug
+  stepDebug?: {
+    currentOperationStates: any[];
+    currentAnimationIndex: number;
+    currentOperationIndex: number;
+    isAnimating: boolean;
+    canStepForward: boolean;
+    canStepBackward: boolean;
+  };
   className?: string;
 }
 
@@ -23,7 +32,7 @@ interface TreeNodeDebugInfo {
   subtreeSize: number;
 }
 
-type TabType = 'tree' | 'operations';
+type TabType = 'tree' | 'operations' | 'step';
 
 /**
  * Debug Panel for BST Visualizer
@@ -38,6 +47,7 @@ export function DebugPanel({
   currentOperationIndex,
   currentAnimationIndex,
   isAnimating,
+  stepDebug,
   className = ''
 }: DebugPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -186,6 +196,19 @@ export function DebugPanel({
               <Code size={14} />
               Operations
             </button>
+            {stepDebug && (
+              <button
+                onClick={() => setActiveTab('step')}
+                className={`flex-1 flex items-center justify-center gap-2 p-3 text-sm font-medium transition-colors ${
+                  activeTab === 'step'
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                }`}
+              >
+                <Bug size={14} />
+                Step Debug
+              </button>
+            )}
           </div>
 
           {/* Tab Content */}
@@ -357,6 +380,92 @@ export function DebugPanel({
                 ) : (
                   <div className="text-gray-500 italic text-sm">No operations performed</div>
                 )}
+              </div>
+            )}
+
+            {/* Step Debug Tab */}
+            {activeTab === 'step' && stepDebug && (
+              <div className="p-4 space-y-4 text-xs">
+                <div>
+                  <div className="font-medium mb-2 text-yellow-400">Current Step Details:</div>
+                  <div className="bg-black/40 rounded-lg p-3 font-mono space-y-1">
+                    <div>Operation Index: {stepDebug.currentOperationIndex}</div>
+                    <div>Animation Index: {stepDebug.currentAnimationIndex}</div>
+                    <div>Is Animating: {stepDebug.isAnimating ? 'Yes' : 'No'}</div>
+                    <div>Can Step Forward: {stepDebug.canStepForward ? 'Yes' : 'No'}</div>
+                    <div>Can Step Backward: {stepDebug.canStepBackward ? 'Yes' : 'No'}</div>
+                  </div>
+                </div>
+                {stepDebug.currentOperationStates.length > 0 && stepDebug.currentAnimationIndex >= 0 && (
+                  <div>
+                    <div className="font-medium mb-2 text-blue-400">Animation Hints for Current Step:</div>
+                    <div className="bg-black/40 rounded-lg p-3 font-mono">
+                      {(() => {
+                        const currentStepState = stepDebug.currentOperationStates[stepDebug.currentAnimationIndex];
+                        if (currentStepState?.animationHints && currentStepState.animationHints.length > 0) {
+                          return currentStepState.animationHints.map((hint: any, index: number) => (
+                            <div key={index} className="mb-1">
+                              <span className="text-green-400">{hint.type}</span>
+                              {hint.metadata && (
+                                <div className="ml-2 text-gray-400 text-xs">
+                                  {JSON.stringify(hint.metadata, null, 2)}
+                                </div>
+                              )}
+                              {hint.duration && <span className="text-purple-400"> (duration: {hint.duration}ms)</span>}
+                              {hint.delay && <span className="text-orange-400"> (delay: {hint.delay}ms)</span>}
+                              {hint.sequence !== undefined && <span className="text-cyan-400"> (seq: {hint.sequence})</span>}
+                            </div>
+                          ));
+                        } else {
+                          return <div className="text-gray-500 italic">No animation hints for this step</div>;
+                        }
+                      })()}
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <div className="font-medium mb-2 text-green-400">State Transition:</div>
+                  <div className="bg-black/40 rounded-lg p-3 font-mono">
+                    {stepDebug.currentOperationStates.length > 0 && stepDebug.currentAnimationIndex >= 0 ? (
+                      <>
+                        <div>Current State: {stepDebug.currentOperationStates[stepDebug.currentAnimationIndex]?.name || 'Unnamed'}</div>
+                        <div>Node Count: {countNodes(normalizeBinaryTree(stepDebug.currentOperationStates[stepDebug.currentAnimationIndex]).root) || 0}</div>
+                        {stepDebug.currentAnimationIndex > 0 && (
+                          <div className="mt-2 pt-2 border-t border-white/10">
+                            <div className="text-gray-400">Previous: {stepDebug.currentOperationStates[stepDebug.currentAnimationIndex - 1]?.name || 'Unnamed'}</div>
+                          </div>
+                        )}
+                        {stepDebug.currentAnimationIndex < stepDebug.currentOperationStates.length - 1 && (
+                          <div className="mt-2 pt-2 border-t border-white/10">
+                            <div className="text-gray-400">Next: {stepDebug.currentOperationStates[stepDebug.currentAnimationIndex + 1]?.name || 'Unnamed'}</div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-gray-500 italic">No state transition information</div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <div className="font-medium mb-2 text-purple-400">Operation Sequence:</div>
+                  <div className="bg-black/40 rounded-lg p-3 font-mono max-h-32 overflow-y-auto">
+                    {stepDebug.currentOperationStates.map((state: any, index: number) => (
+                      <div 
+                        key={index} 
+                        className={`text-xs mb-1 ${
+                          index === stepDebug.currentAnimationIndex 
+                            ? 'text-yellow-300 font-bold' 
+                            : index < stepDebug.currentAnimationIndex 
+                              ? 'text-green-300' 
+                              : 'text-gray-400'
+                        }`}
+                      >
+                        {index + 1}. {state.name || `Step ${index + 1}`}
+                        {index === stepDebug.currentAnimationIndex && ' ← CURRENT'}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>

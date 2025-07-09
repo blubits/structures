@@ -171,7 +171,6 @@ function BSTPageContent() {
 
       {/* Operation controls */}
       <BSTOperationControls
-        currentState={currentState}
         isPlaying={isPlaying}
         onPlayPause={handlePlayPause}
         animationSpeed={animationSpeed}
@@ -186,6 +185,18 @@ function BSTPageContent() {
           currentOperationIndex={historyController.getCurrentOperationIndex()}
           currentAnimationIndex={historyController.getCurrentAnimationIndex()}
           isAnimating={historyController.isAnimating()}
+          stepDebug={{
+            currentOperationStates: (() => {
+              const idx = historyController.getCurrentOperationIndex();
+              const hist = historyController.getHistory();
+              return idx >= 0 && idx < hist.length ? [...hist[idx].states] : [];
+            })(),
+            currentAnimationIndex: historyController.getCurrentAnimationIndex(),
+            currentOperationIndex: historyController.getCurrentOperationIndex(),
+            isAnimating: historyController.isAnimating(),
+            canStepForward: historyController.canStepForward(),
+            canStepBackward: historyController.canStepBackward(),
+          }}
         />
       )}
 
