@@ -1,3 +1,7 @@
+import React, { useState } from 'react';
+import { FaStepBackward, FaStepForward, FaPlay, FaPause, FaRedo, FaTachometerAlt } from 'react-icons/fa';
+import { MdExpandMore, MdExpandLess } from 'react-icons/md';
+
 /**
  * Generic Operation Controls Overlay
  * 
@@ -80,32 +84,16 @@ interface OperationControlsProps<TOperation extends Operation = Operation, TStep
   additionalInfo?: Record<string, any>;
   /** Optional custom class names for styling */
   className?: string;
+  // === BST-specific and optional props ===
+  /** Show speed control dropdown/buttons */
+  showSpeedControl?: boolean;
+  /** Current animation speed */
+  animationSpeed?: 'slow' | 'normal' | 'fast';
+  /** Callback for speed change */
+  onSpeedChange?: (speed: 'slow' | 'normal' | 'fast') => void;
+  /** Debug content to render when debugVisible is true */
+  debugContent?: React.ReactNode;
 }
-
-/**
- * Default step description generator
- * Provides basic descriptions when no custom generator is provided
- */
-const defaultStepDescriptionGenerator: StepDescriptionGenerator = (
-  operation,
-  currentStep,
-  stepIndex,
-  totalSteps
-) => {
-  if (currentStep?.description) {
-    return currentStep.description;
-  }
-
-  const stepNumber = stepIndex + 1;
-  
-  if (stepNumber === 1) {
-    return `Starting ${operation.type} operation${operation.value !== undefined ? ` with value ${operation.value}` : ''}.`;
-  } else if (stepNumber === totalSteps) {
-    return `Completed ${operation.type} operation.`;
-  } else {
-    return `Executing step ${stepNumber} of ${operation.type} operation.`;
-  }
-};
 
 /**
  * OperationControls Component
@@ -125,7 +113,7 @@ export const OperationControls = <TOperation extends Operation = Operation, TSte
   currentStepIndex,
   operationSteps = [],
   currentOperation,
-  stepDescriptionGenerator = defaultStepDescriptionGenerator,
+  stepDescriptionGenerator,
   onTogglePlayback,
   onStepForward,
   onStepBackward,
@@ -134,108 +122,149 @@ export const OperationControls = <TOperation extends Operation = Operation, TSte
   operationTitle,
   additionalInfo,
   className = "",
+  // BST-specific and optional props
+  showSpeedControl = false,
+  animationSpeed = 'normal',
+  onSpeedChange,
+  debugContent,
 }: OperationControlsProps<TOperation, TStep>) => {
   // Don't render if not active or no steps available
   if (!isActive || !currentOperation || operationSteps.length === 0) {
     return null;
   }
 
+  const [speedOpen, setSpeedOpen] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(false);
+
   const currentStep = operationSteps[Math.max(0, Math.min(currentStepIndex, operationSteps.length - 1))];
   const isFirstStep = currentStepIndex <= 0;
   const isLastStep = currentStepIndex >= operationSteps.length - 1;
 
-  // Generate step description using the provided generator
-  const stepDescription = stepDescriptionGenerator(
-    currentOperation,
-    currentStep,
-    currentStepIndex,
-    operationSteps.length
-  );
+  // Emphasize the step title (current state's name)
+  const stepTitle = currentStep?.name || '';
 
   // Use custom title or generate from operation type
   const displayTitle = operationTitle || 
     (currentOperation.type.charAt(0).toUpperCase() + currentOperation.type.slice(1) + ' Operation');
 
+  // Speed slider pop-out
+  const speedOptions = [
+    { label: '🐢 Slow', value: 'slow' },
+    { label: '🚶 Normal', value: 'normal' },
+    { label: '🏃 Fast', value: 'fast' },
+  ];
+
+  // Generate step description using the provided generator
+  const stepDescription = stepDescriptionGenerator
+    ? stepDescriptionGenerator(currentOperation, currentStep, currentStepIndex, operationSteps.length)
+    : '';
+
   return (
-    <div className={`absolute bottom-6 left-1/2 transform -translate-x-1/2 z-30 ${className}`}>
-      <div className="bg-black/80 backdrop-blur-sm text-white rounded-lg text-sm pointer-events-auto min-w-[400px] max-w-[600px]">
-        {/* Step Information Panel */}
-        <div className="px-4 py-3 border-b border-white/20">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-semibold text-base">
-              {displayTitle}
-            </span>
-            <span className="text-xs opacity-75">
-              Step {currentStepIndex + 1} of {operationSteps.length}
-            </span>
+    <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 ${className}`} style={{ minWidth: 420, maxWidth: 640 }}>
+      <div className="bg-black/80 backdrop-blur-md text-white rounded-xl shadow-lg px-6 py-5 flex flex-col gap-2 pointer-events-auto">
+        {/* Step Title, Operation Title, and Step Position */}
+        <div className="flex items-start justify-between mb-1 w-full">
+          <div className="flex flex-col">
+            <div className="text-xl font-bold tracking-tight mb-0 text-left">{stepTitle}</div>
+            <div className="text-xs opacity-70 font-medium text-left mt-1">{displayTitle}</div>
           </div>
-          
-          <div className="text-sm mb-2">
-            {stepDescription}
+          <div className="text-xs opacity-70 font-medium self-start text-right whitespace-nowrap mt-1">
+            Step {currentStepIndex + 1} of {operationSteps.length}
           </div>
-          
-          {/* Display operation value if available */}
-          {currentOperation.value !== undefined && (
-            <div className="text-xs opacity-75">
-              Target: {currentOperation.value}
-            </div>
-          )}
-          
-          {/* Display current step operation if available */}
-          {currentStep?.operation && (
-            <div className="text-xs opacity-75 mt-1 italic">
-              Operation: {currentStep.operation}
-            </div>
-          )}
-
-          {/* Display additional info if provided */}
-          {additionalInfo && Object.keys(additionalInfo).length > 0 && (
-            <div className="text-xs opacity-75 mt-1">
-              {Object.entries(additionalInfo).map(([key, value]) => (
-                <div key={key}>
-                  {key}: {String(value)}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
-
-        {/* Control Buttons */}
-        <div className="px-4 py-3 flex items-center justify-center gap-3">
+        {/* Step Description */}
+        <div className="text-center text-sm mb-2 opacity-90">{stepDescription}</div>
+        {/* Media Player Controls */}
+        <div className="flex items-center justify-center gap-4 mt-1">
           <button
             onClick={onStepBackward}
             disabled={isFirstStep}
-            className="p-2 rounded-md bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
             title="Previous Step"
           >
-            ⏮️
+            <span className="p-1"><FaStepBackward size={22} /></span>
           </button>
-          
           <button
             onClick={onTogglePlayback}
-            className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-md transition-colors font-medium"
+            className="p-3 rounded-full bg-gray-800 hover:bg-gray-700 text-white transition-colors shadow-md flex items-center justify-center"
             title={isPlaying ? "Pause Playback" : "Start Playback"}
           >
-            {isPlaying ? '⏸️ Pause' : '▶️ Play'}
+            <span className="p-1">{isPlaying ? <FaPause size={28} /> : <FaPlay size={28} />}</span>
           </button>
-          
           <button
             onClick={onStepForward}
             disabled={isLastStep}
-            className="p-2 rounded-md bg-gray-600 hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
             title="Next Step"
           >
-            ⏭️
+            <span className="p-1"><FaStepForward size={22} /></span>
           </button>
-          
           <button
             onClick={onRestartOperation}
-            className="px-3 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-md transition-colors text-sm"
+            className="p-2 rounded-full bg-gray-800 hover:bg-gray-700 text-white transition-colors flex items-center justify-center"
             title="Restart Operation"
           >
-            🔄 Restart
+            <span className="p-1"><FaRedo size={20} /></span>
           </button>
+          {/* Speed Control Pop-out */}
+          {showSpeedControl && (
+            <div className="relative">
+              <button
+                onClick={() => setSpeedOpen((v) => !v)}
+                className={`p-2 rounded-full bg-gray-800 hover:bg-gray-700 text-white transition-colors ml-2 flex items-center justify-center ${speedOpen ? 'ring-2 ring-blue-400' : ''}`}
+                title="Change Speed"
+              >
+                <span className="p-1"><FaTachometerAlt size={20} /></span>
+              </button>
+              {speedOpen && (
+                <div className="absolute left-1/2 -translate-x-1/2 top-12 bg-gray-900 border border-gray-700 rounded-lg shadow-lg px-4 py-3 flex flex-col gap-2 z-40 min-w-[140px]">
+                  <div className="text-xs text-gray-300 mb-1">Animation Speed</div>
+                  {speedOptions.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { onSpeedChange?.(opt.value as any); setSpeedOpen(false); }}
+                      className={`w-full px-2 py-1 rounded-md text-left transition-all ${animationSpeed === opt.value ? 'bg-blue-600 text-white font-bold' : 'bg-gray-800 hover:bg-gray-700 text-gray-200'}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
+        {/* Additional Info */}
+        {additionalInfo && Object.keys(additionalInfo).length > 0 && (
+          <div className="text-xs opacity-75 mt-1 text-center">
+            {Object.entries(additionalInfo).map(([key, value]) => (
+              <span key={key} className="inline-block mx-2">
+                {key}: {String(value)}
+              </span>
+            ))}
+          </div>
+        )}
+        {/* Debug Panel Accordion */}
+        {debugContent && (
+          <div className="mt-2">
+            <button
+              onClick={() => setDebugOpen((v) => !v)}
+              className="flex items-center gap-1 text-purple-300 hover:text-purple-100 text-sm font-medium w-full justify-center"
+              title={debugOpen ? "Hide Debug Info" : "Show Debug Info"}
+            >
+              {debugOpen ? <MdExpandLess size={20} /> : <MdExpandMore size={20} />}
+              Debug Info
+            </button>
+            <div
+              className={`overflow-hidden transition-all duration-300 ${debugOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
+            >
+              {debugOpen && (
+                <div className="bg-gray-900 border border-purple-700 rounded-lg mt-2 px-4 py-3 text-xs text-purple-100">
+                  {debugContent}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

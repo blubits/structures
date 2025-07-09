@@ -2,8 +2,7 @@ import { useCallback, useState } from "react";
 import { useBST } from "@/structures/BinaryTree/variants/BST/BSTProvider";
 import type { BinaryTree } from "@/structures/BinaryTree/types";
 import { countNodes, normalizeBinaryTree } from "@/structures/BinaryTree/types";
-import { OperationControls } from "@/components/OperationsControls";
-import type { OperationStep } from "@/components/OperationsControls";
+import { OperationControls, type OperationStep } from "@/components/OperationControls";
 
 interface BSTOperationControlsProps {
   currentState: BinaryTree;
