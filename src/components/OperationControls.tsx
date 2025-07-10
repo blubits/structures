@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { FaStepBackward, FaStepForward, FaPlay, FaPause, FaRedo, FaTachometerAlt } from 'react-icons/fa';
+import { PseudocodeDisplay } from './PseudocodeDisplay';
+import type { OperationWithPseudocode } from '@/lib/core/types';
 
 /**
  * A reusable overlay component for controlling step-by-step operations in any visualization system,
@@ -57,7 +59,7 @@ interface OperationControlsProps<TOperation extends Operation = Operation, TStep
   /** All steps for the current operation */
   operationSteps?: TStep[];
   /** The current operation being visualized */
-  currentOperation?: TOperation;
+  currentOperation?: TOperation | OperationWithPseudocode;
   /** Function to generate step descriptions */
   stepDescriptionGenerator?: StepDescriptionGenerator<TOperation, TStep>;
   /** Callback to toggle automatic playback of steps */
@@ -83,6 +85,10 @@ interface OperationControlsProps<TOperation extends Operation = Operation, TStep
   animationSpeed?: number;
   /** Callback for speed change */
   onSpeedChange?: (speed: number) => void;
+  /** Whether to show pseudocode panel */
+  showPseudocode?: boolean;
+  /** Callback when pseudocode visibility changes */
+  onPseudocodeToggle?: (visible: boolean) => void;
 }
 
 /**
@@ -108,6 +114,8 @@ export const OperationControls = <TOperation extends Operation = Operation, TSte
   showSpeedControl = false,
   animationSpeed = 1,
   onSpeedChange,
+  showPseudocode = false,
+  onPseudocodeToggle,
 }: OperationControlsProps<TOperation, TStep>) => {
   // Don't render if not active or no steps available
   if (!isActive || !currentOperation || operationSteps.length === 0) {
@@ -143,6 +151,10 @@ export const OperationControls = <TOperation extends Operation = Operation, TSte
   const stepDescription = stepDescriptionGenerator
     ? stepDescriptionGenerator(currentOperation, currentStep, currentStepIndex, operationSteps.length)
     : '';
+
+  // Render pseudocode panel if enabled and operation supports it
+  const opWithPseudocode = currentOperation as OperationWithPseudocode;
+  const canShowPseudocode = showPseudocode && opWithPseudocode && opWithPseudocode.pseudocode;
 
   return (
     <div className={`fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 ${className}`} style={{ minWidth: 420, maxWidth: 640 }}>
@@ -227,6 +239,26 @@ export const OperationControls = <TOperation extends Operation = Operation, TSte
               </span>
             ))}
           </div>
+        )}
+        {/* Pseudocode Panel Toggle */}
+        {opWithPseudocode && (
+          <button
+            className="text-xs underline mb-2 self-end"
+            onClick={() => onPseudocodeToggle?.(!showPseudocode)}
+            aria-label="Toggle pseudocode panel"
+          >
+            {showPseudocode ? 'Hide Pseudocode' : 'Show Pseudocode'}
+          </button>
+        )}
+        {/* Pseudocode Panel */}
+        {canShowPseudocode && (
+          <PseudocodeDisplay
+            operation={opWithPseudocode}
+            currentStepIndex={currentStepIndex}
+            states={operationSteps}
+            isCollapsed={false}
+            onToggle={() => onPseudocodeToggle?.(!showPseudocode)}
+          />
         )}
       </div>
     </div>

@@ -170,6 +170,8 @@ function BSTPageContent() {
       <BSTOperationControls
         animationSpeed={animationSpeed}
         onSpeedChange={setAnimationSpeed}
+        showPseudocode={false}
+        onPseudocodeToggle={() => {}}
       />
 
       {/* Debug panel */}

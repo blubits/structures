@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useBST } from "@structures/BinaryTree/variants/BST";
 import { OperationControls, type OperationStep } from "@components/OperationControls";
 
@@ -12,9 +12,12 @@ interface BSTOperationControlsProps {
  */
 export function BSTOperationControls({
   animationSpeed,
-  onSpeedChange
-}: BSTOperationControlsProps) {
+  onSpeedChange,
+  showPseudocode = false,
+  onPseudocodeToggle = () => {},
+}: BSTOperationControlsProps & { showPseudocode?: boolean; onPseudocodeToggle?: (v: boolean) => void }) {
   const { historyController, isPlaying, setIsPlaying } = useBST();
+  const [localShowPseudocode, setLocalShowPseudocode] = useState(showPseudocode);
 
   // Step navigation handlers
   const handleStepForward = useCallback(() => {
@@ -56,6 +59,8 @@ export function BSTOperationControls({
       currentStepIndex={currentAnimationIndex}
       operationSteps={currentOperationStates as unknown as OperationStep[]}
       currentOperation={currentOperation}
+      showPseudocode={localShowPseudocode}
+      onPseudocodeToggle={onPseudocodeToggle}
       onTogglePlayback={handlePlayPause}
       onStepForward={handleStepForward}
       onStepBackward={handleStepBackward}

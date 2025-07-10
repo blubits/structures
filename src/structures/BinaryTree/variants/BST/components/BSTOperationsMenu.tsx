@@ -11,6 +11,7 @@ import {
 import { OperationMenu } from "@components/OperationsMenu";
 import type { OperationMenuItem } from "@components/OperationsMenu";
 import { loggers } from "@/lib/core";
+import { BSTInsertOperation } from '../operations/BSTInsertOperation';
 
 interface BSTOperationsMenuProps {
   isExecuting: boolean;
@@ -26,12 +27,8 @@ export function BSTOperationsMenu({ isExecuting }: BSTOperationsMenuProps) {
   const [deleteValue, setDeleteValue] = useState(() => Math.floor(Math.random() * 50) + 1);
 
   const handleInsert = () => {
-    const operation = createOperation(
-      "insert",
-      { value: insertValue },
-      `Insert ${insertValue}`
-    );
-    const states = generateBSTInsertStates(currentState, insertValue);
+    const operation = new BSTInsertOperation(insertValue);
+    const states = operation.generateStates(currentState);
     historyController.execute(operation, states);
     historyController.startSteppingThroughCurrentOperation();
     setIsPlaying(true); // Start autoplay

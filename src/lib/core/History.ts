@@ -80,7 +80,7 @@ export class HistoryController<TState extends DataStructureState = DataStructure
 
     // Create immutable operation group
     const operationGroup: OperationGroup<TState> = {
-      operation: { ...operation },
+      operation: operation, // Store the instance, not a shallow copy
       states: [...states], // Create defensive copy
     };
 
