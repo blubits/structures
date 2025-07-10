@@ -5,6 +5,7 @@ import { normalizeBinaryTree } from '@/structures/BinaryTree/types';
 import type { BinaryTree } from '@/structures/BinaryTree/types';
 import { registerBinaryTreeAnimations } from '@/structures/BinaryTree/animations';
 import { loggers } from '@/lib/core';
+import { DEFAULT_AUTOPLAY_INTERVAL } from '@structures/BinaryTree/config';
 
 // Register animations on module load
 registerBinaryTreeAnimations();
@@ -16,8 +17,8 @@ interface BSTContextValue {
   historyController: HistoryController<BinaryTree>;
   currentState: BinaryTree;
   isExecuting: boolean;
-  animationSpeed: 'slow' | 'normal' | 'fast';
-  setAnimationSpeed: (speed: 'slow' | 'normal' | 'fast') => void;
+  animationSpeed: number; // 0.25–2, 1 = normal
+  setAnimationSpeed: (speed: number) => void;
   isPlaying: boolean;
   setIsPlaying: (playing: boolean) => void;
 }
@@ -59,7 +60,7 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
   );
 
   // Animation state
-  const [animationSpeed, setAnimationSpeed] = useState<'slow' | 'normal' | 'fast'>('normal');
+  const [animationSpeed, setAnimationSpeed] = useState<number>(1); // 1x normal
   
   // Playback state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -95,22 +96,14 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
       return;
     }
     
-    // Animation speed to ms
-    const speedToMs = (speed: 'slow' | 'normal' | 'fast') => {
-      switch (speed) {
-        case 'slow': return 1200;
-        case 'fast': return 300;
-        default: return 700;
-      }
-    };
-    
+    // Use global default interval and numeric speed multiplier
     const interval = setInterval(() => {
       if (historyController.canStepForward()) {
         historyController.stepForward();
       } else {
         setIsPlaying(false);
       }
-    }, speedToMs(animationSpeed));
+    }, DEFAULT_AUTOPLAY_INTERVAL / animationSpeed);
     
     return () => clearInterval(interval);
   }, [isPlaying, animationSpeed, historyController]);

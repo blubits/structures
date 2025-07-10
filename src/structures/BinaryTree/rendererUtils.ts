@@ -1,4 +1,5 @@
 import type { BinaryTreeNode } from '@structures/BinaryTree/types';
+import { DEFAULT_ANIMATION_DURATION } from '@structures/BinaryTree/config';
 
 /**
  * Data structure for node rendering information.
@@ -90,14 +91,13 @@ export function getNodeFillColor(state: string, colors: any): string {
 }
 
 /**
- * Returns the animation duration in ms for a given speed.
+ * Returns the animation duration in ms for a given speed multiplier.
+ * @param speedMultiplier Animation speed multiplier (0.25x–2x, 1x = normal)
  */
-export function getAnimationDuration(speed: 'slow' | 'normal' | 'fast'): number {
-  switch (speed) {
-    case 'slow': return 1000;
-    case 'fast': return 300;
-    default: return 600;
-  }
+export function getAnimationDuration(speedMultiplier: number): number {
+  // Clamp multiplier between 0.25 and 2
+  const multiplier = Math.max(0.25, Math.min(speedMultiplier, 2));
+  return DEFAULT_ANIMATION_DURATION / multiplier;
 }
 
 /**

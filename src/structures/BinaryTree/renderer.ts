@@ -18,7 +18,7 @@ import * as d3 from 'd3';
  */
 export interface BinaryTreeVisualState {
   tree: BinaryTreeNode | null;
-  animationSpeed: 'slow' | 'normal' | 'fast';
+  animationSpeed: number; // 0.25–2, 1 = normal
   theme: 'light' | 'dark';
   // Animation hints - the ONLY source of animation data
   animationHints?: AnimationHint[];

@@ -3,8 +3,8 @@ import { useBST } from "@structures/BinaryTree/variants/BST";
 import { OperationControls, type OperationStep } from "@components/OperationControls";
 
 interface BSTOperationControlsProps {
-  animationSpeed: 'slow' | 'normal' | 'fast';
-  onSpeedChange: (speed: 'slow' | 'normal' | 'fast') => void;
+  animationSpeed: number; // 0.25–2, 1 = normal
+  onSpeedChange: (speed: number) => void;
 }
 
 /**

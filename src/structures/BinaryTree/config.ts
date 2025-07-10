@@ -2,6 +2,12 @@ import type { BinaryTreeConfig } from '@structures/BinaryTree/types';
 import { DEFAULT_BINARY_TREE_CONFIG } from '@structures/BinaryTree/types';
 
 /**
+ * Default durations (in ms) for 1x speed.
+ */
+export const DEFAULT_ANIMATION_DURATION = 600; // ms, adjust as needed
+export const DEFAULT_AUTOPLAY_INTERVAL = 1200; // ms, adjust as needed
+
+/**
  * BST-specific configuration that extends the base binary tree config.
  */
 export interface BSTConfig extends BinaryTreeConfig {
@@ -18,6 +24,9 @@ export interface BSTConfig extends BinaryTreeConfig {
     
     /** Whether to validate BST properties after operations */
     validateAfterOperations: boolean;
+    
+    /** Animation speed multiplier (0.25x to 2x, step 0.25, 1x = normal) */
+    animationSpeed: number;
   };
 }
 
@@ -31,6 +40,7 @@ export const DEFAULT_BST_CONFIG: BSTConfig = {
     highlightPath: true,
     showValues: true,
     validateAfterOperations: true,
+    animationSpeed: 1, // 1x normal speed
   },
 };
 

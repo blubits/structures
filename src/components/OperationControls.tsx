@@ -79,10 +79,10 @@ interface OperationControlsProps<TOperation extends Operation = Operation, TStep
   // === BST-specific and optional props ===
   /** Show speed control dropdown/buttons */
   showSpeedControl?: boolean;
-  /** Current animation speed */
-  animationSpeed?: 'slow' | 'normal' | 'fast';
+  /** Current animation speed (0.25–2, 1 = normal) */
+  animationSpeed?: number;
   /** Callback for speed change */
-  onSpeedChange?: (speed: 'slow' | 'normal' | 'fast') => void;
+  onSpeedChange?: (speed: number) => void;
 }
 
 /**
@@ -106,7 +106,7 @@ export const OperationControls = <TOperation extends Operation = Operation, TSte
   className = "",
   // BST-specific and optional props
   showSpeedControl = false,
-  animationSpeed = 'normal',
+  animationSpeed = 1,
   onSpeedChange,
 }: OperationControlsProps<TOperation, TStep>) => {
   // Don't render if not active or no steps available
@@ -129,9 +129,14 @@ export const OperationControls = <TOperation extends Operation = Operation, TSte
 
   // Speed slider pop-out
   const speedOptions = [
-    { label: '🐢 Slow', value: 'slow' },
-    { label: '🚶 Normal', value: 'normal' },
-    { label: '🏃 Fast', value: 'fast' },
+    { label: '0.25x', value: 0.25 },
+    { label: '0.5x', value: 0.5 },
+    { label: '0.75x', value: 0.75 },
+    { label: '1x', value: 1 },
+    { label: '1.25x', value: 1.25 },
+    { label: '1.5x', value: 1.5 },
+    { label: '1.75x', value: 1.75 },
+    { label: '2x', value: 2 },
   ];
 
   // Generate step description using the provided generator
@@ -197,12 +202,12 @@ export const OperationControls = <TOperation extends Operation = Operation, TSte
                 <span className="p-1"><FaTachometerAlt size={20} /></span>
               </button>
               {speedOpen && (
-                <div className="absolute left-1/2 -translate-x-1/2 top-12 bg-gray-900 border border-gray-700 rounded-lg shadow-lg px-4 py-3 flex flex-col gap-2 z-40 min-w-[140px]">
+                <div className="absolute left-1/2 -translate-x-1/2 bottom-12 bg-gray-900 border border-gray-700 rounded-lg shadow-lg px-4 py-3 flex flex-col gap-2 z-40 min-w-[140px]">
                   <div className="text-xs text-gray-300 mb-1">Animation Speed</div>
                   {speedOptions.map(opt => (
                     <button
                       key={opt.value}
-                      onClick={() => { onSpeedChange?.(opt.value as any); setSpeedOpen(false); }}
+                      onClick={() => { onSpeedChange?.(opt.value); setSpeedOpen(false); }}
                       className={`w-full px-2 py-1 rounded-md text-left transition-all ${animationSpeed === opt.value ? 'bg-blue-600 text-white font-bold' : 'bg-gray-800 hover:bg-gray-700 text-gray-200'}`}
                     >
                       {opt.label}
