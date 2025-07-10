@@ -72,7 +72,6 @@ function BSTPage() {
  */
 function BSTPageContent() {
   const { historyController, currentState, isExecuting, animationSpeed, setAnimationSpeed } = useBST();
-  const [isPlaying, setIsPlaying] = useState(false);
   const [selectedOperationIndex, setSelectedOperationIndex] = useState(-1);
 
   // Debug logging for current state
@@ -97,11 +96,6 @@ function BSTPageContent() {
     timestamp: group.operation.timestamp,
     index
   }));
-
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-    // TODO: Implement automatic stepping when playing
-  };
 
   const handleSelectOperation = (operationIndex: number) => {
     historyController.jumpTo(operationIndex);
@@ -174,8 +168,6 @@ function BSTPageContent() {
 
       {/* Operation controls */}
       <BSTOperationControls
-        isPlaying={isPlaying}
-        onPlayPause={handlePlayPause}
         animationSpeed={animationSpeed}
         onSpeedChange={setAnimationSpeed}
       />

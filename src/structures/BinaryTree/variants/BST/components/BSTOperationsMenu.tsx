@@ -20,7 +20,7 @@ interface BSTOperationsMenuProps {
  * Menu component for BST operations (insert, search, delete, min, max) with input controls and action handlers.
  */
 export function BSTOperationsMenu({ isExecuting }: BSTOperationsMenuProps) {
-  const { historyController, currentState } = useBST();
+  const { historyController, currentState, setIsPlaying } = useBST();
   const [insertValue, setInsertValue] = useState(() => Math.floor(Math.random() * 50) + 1);
   const [searchValue, setSearchValue] = useState(() => Math.floor(Math.random() * 50) + 1);
   const [deleteValue, setDeleteValue] = useState(() => Math.floor(Math.random() * 50) + 1);
@@ -34,6 +34,7 @@ export function BSTOperationsMenu({ isExecuting }: BSTOperationsMenuProps) {
     const states = generateBSTInsertStates(currentState, insertValue);
     historyController.execute(operation, states);
     historyController.startSteppingThroughCurrentOperation();
+    setIsPlaying(true); // Start autoplay
     setInsertValue(Math.floor(Math.random() * 50) + 1);
   };
 
@@ -46,6 +47,7 @@ export function BSTOperationsMenu({ isExecuting }: BSTOperationsMenuProps) {
     const states = generateBSTSearchStates(currentState, searchValue);
     historyController.execute(operation, states);
     historyController.startSteppingThroughCurrentOperation();
+    setIsPlaying(true); // Start autoplay
     setSearchValue(Math.floor(Math.random() * 50) + 1);
   };
 
@@ -60,6 +62,7 @@ export function BSTOperationsMenu({ isExecuting }: BSTOperationsMenuProps) {
     const states = generateBSTFindMinStates(currentState);
     historyController.execute(operation, states);
     historyController.startSteppingThroughCurrentOperation();
+    setIsPlaying(true); // Start autoplay
   };
 
   const handleFindMax = () => {
@@ -67,6 +70,7 @@ export function BSTOperationsMenu({ isExecuting }: BSTOperationsMenuProps) {
     const states = generateBSTFindMaxStates(currentState);
     historyController.execute(operation, states);
     historyController.startSteppingThroughCurrentOperation();
+    setIsPlaying(true); // Start autoplay
   };
 
   const items: OperationMenuItem[] = [

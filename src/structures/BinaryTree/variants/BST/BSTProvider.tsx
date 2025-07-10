@@ -18,6 +18,8 @@ interface BSTContextValue {
   isExecuting: boolean;
   animationSpeed: 'slow' | 'normal' | 'fast';
   setAnimationSpeed: (speed: 'slow' | 'normal' | 'fast') => void;
+  isPlaying: boolean;
+  setIsPlaying: (playing: boolean) => void;
 }
 
 const BSTContext = createContext<BSTContextValue | null>(null);
@@ -59,6 +61,9 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
   // Animation state
   const [animationSpeed, setAnimationSpeed] = useState<'slow' | 'normal' | 'fast'>('normal');
   
+  // Playback state
+  const [isPlaying, setIsPlaying] = useState(false);
+  
   // Execution state - currently always false since loadExample was removed
   const isExecuting = false;
 
@@ -82,12 +87,42 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
     return unsubscribe;
   }, [historyController]);
 
+  // Autoplay logic
+  useEffect(() => {
+    if (!isPlaying) return;
+    if (!historyController.canStepForward()) {
+      setIsPlaying(false);
+      return;
+    }
+    
+    // Animation speed to ms
+    const speedToMs = (speed: 'slow' | 'normal' | 'fast') => {
+      switch (speed) {
+        case 'slow': return 1200;
+        case 'fast': return 300;
+        default: return 700;
+      }
+    };
+    
+    const interval = setInterval(() => {
+      if (historyController.canStepForward()) {
+        historyController.stepForward();
+      } else {
+        setIsPlaying(false);
+      }
+    }, speedToMs(animationSpeed));
+    
+    return () => clearInterval(interval);
+  }, [isPlaying, animationSpeed, historyController]);
+
   const contextValue: BSTContextValue = {
     historyController,
     currentState,
     isExecuting,
     animationSpeed,
     setAnimationSpeed,
+    isPlaying,
+    setIsPlaying,
   };
 
   return (

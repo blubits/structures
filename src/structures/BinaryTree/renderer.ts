@@ -1,17 +1,17 @@
-import * as d3 from 'd3';
-import { processBinaryTreeAnimations } from '@/structures/BinaryTree/animations';
-import type { BinaryTreeNode } from '@structures/BinaryTree/types';
-import type { AnimationHint } from '@/lib/core/types';
 import { loggers } from '@/lib/core';
-import { BINARY_TREE_COLORS } from '@structures/BinaryTree/config.colors';
+import type { AnimationHint } from '@/lib/core/types';
+import { processBinaryTreeAnimations } from '@/structures/BinaryTree/animations';
 import {
   calculateTreeLayout,
-  getNodeFillColor,
-  getAnimationDuration,
   collectNodesAndLinks,
-  type NodeData,
-  type LinkData
+  getAnimationDuration,
+  getNodeFillColor,
+  type LinkData,
+  type NodeData
 } from '@/structures/BinaryTree/rendererUtils';
+import { BINARY_TREE_COLORS } from '@structures/BinaryTree/config.colors';
+import type { BinaryTreeNode } from '@structures/BinaryTree/types';
+import * as d3 from 'd3';
 
 /**
  * Visual state for the binary tree renderer, including tree data, animation speed, theme, and animation hints.

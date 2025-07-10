@@ -3,8 +3,6 @@ import { useBST } from "@structures/BinaryTree/variants/BST";
 import { OperationControls, type OperationStep } from "@components/OperationControls";
 
 interface BSTOperationControlsProps {
-  isPlaying: boolean;
-  onPlayPause: () => void;
   animationSpeed: 'slow' | 'normal' | 'fast';
   onSpeedChange: (speed: 'slow' | 'normal' | 'fast') => void;
 }
@@ -13,12 +11,10 @@ interface BSTOperationControlsProps {
  * Operation controls for BST visualizations, providing step navigation and playback controls.
  */
 export function BSTOperationControls({
-  isPlaying,
-  onPlayPause,
   animationSpeed,
   onSpeedChange
 }: BSTOperationControlsProps) {
-  const { historyController } = useBST();
+  const { historyController, isPlaying, setIsPlaying } = useBST();
 
   // Step navigation handlers
   const handleStepForward = useCallback(() => {
@@ -32,6 +28,10 @@ export function BSTOperationControls({
   const handleRestart = useCallback(() => {
     historyController.startSteppingThroughCurrentOperation();
   }, [historyController]);
+
+  const handlePlayPause = useCallback(() => {
+    setIsPlaying(!isPlaying);
+  }, [isPlaying, setIsPlaying]);
 
   // Get current operation info
   const currentAnimationIndex = historyController.getCurrentAnimationIndex();
@@ -56,7 +56,7 @@ export function BSTOperationControls({
       currentStepIndex={currentAnimationIndex}
       operationSteps={currentOperationStates as unknown as OperationStep[]}
       currentOperation={currentOperation}
-      onTogglePlayback={onPlayPause}
+      onTogglePlayback={handlePlayPause}
       onStepForward={handleStepForward}
       onStepBackward={handleStepBackward}
       onRestartOperation={handleRestart}
