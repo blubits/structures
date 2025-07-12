@@ -149,7 +149,7 @@ export const OperationControls = <TOperation extends Operation = Operation, TSte
 
   // Generate step description using the provided generator
   const stepDescription = stepDescriptionGenerator
-    ? stepDescriptionGenerator(currentOperation, currentStep, currentStepIndex, operationSteps.length)
+    ? stepDescriptionGenerator(currentOperation as TOperation, currentStep, currentStepIndex, operationSteps.length)
     : '';
 
   // Render pseudocode panel if enabled and operation supports it

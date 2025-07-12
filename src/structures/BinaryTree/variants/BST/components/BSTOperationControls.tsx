@@ -21,12 +21,14 @@ export function BSTOperationControls({
 
   // Step navigation handlers
   const handleStepForward = useCallback(() => {
+    if (isPlaying) setIsPlaying(false); // Stop autoplay if active
     historyController.stepForward();
-  }, [historyController]);
+  }, [historyController, isPlaying, setIsPlaying]);
 
   const handleStepBackward = useCallback(() => {
+    if (isPlaying) setIsPlaying(false); // Stop autoplay if active
     historyController.stepBackward();
-  }, [historyController]);
+  }, [historyController, isPlaying, setIsPlaying]);
 
   const handleRestart = useCallback(() => {
     historyController.startSteppingThroughCurrentOperation();
