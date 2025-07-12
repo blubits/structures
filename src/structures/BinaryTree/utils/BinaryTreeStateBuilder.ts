@@ -1,6 +1,6 @@
 import type { BinaryTreeNode, BinaryTree } from '@structures/BinaryTree/types';
 import type { AnimationHint } from '@/lib/core/types';
-import { updateBinaryTreeNode, normalizeBinaryTree } from '@structures/BinaryTree/types';
+import { updateBinaryTreeNode } from '@structures/BinaryTree/types';
 import { traverseDown } from '@/structures/BinaryTree/animations';
 
 /**
@@ -12,7 +12,7 @@ export class BinaryTreeStateBuilder {
   private currentPath: string[] = [];
 
   constructor(initialTree: BinaryTree) {
-    this.currentTree = normalizeBinaryTree(initialTree);
+    this.currentTree = initialTree; // Do not normalize here
   }
 
   compareWith(value: number): this {
@@ -79,7 +79,7 @@ export class BinaryTreeStateBuilder {
       const direction = this.currentPath[this.currentPath.length - 1] as 'left' | 'right';
       const parentNode = this.getNodeAtPath(parentPath);
       if (parentNode) {
-        const newNode = normalizeBinaryTree({ root: newNodeSpec }).root!;
+        const newNode = newNodeSpec; // Do not normalize here
         const updatedParent = updateBinaryTreeNode(parentNode, {
           [direction]: newNode
         });
@@ -104,7 +104,7 @@ export class BinaryTreeStateBuilder {
       right: null,
       state: 'default'
     };
-    const newNode = normalizeBinaryTree({ root: newNodeSpec }).root!;
+    const newNode = newNodeSpec; // Do not normalize here
     const updatedCurrentNode = updateBinaryTreeNode(currentNode, {
       left: newNode
     });
@@ -125,7 +125,7 @@ export class BinaryTreeStateBuilder {
       right: null,
       state: 'default'
     };
-    const newNode = normalizeBinaryTree({ root: newNodeSpec }).root!;
+    const newNode = newNodeSpec; // Do not normalize here
     const updatedCurrentNode = updateBinaryTreeNode(currentNode, {
       right: newNode
     });

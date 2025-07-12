@@ -8,7 +8,6 @@ import {
 } from "@structures/BinaryTree/variants/BST";
 import {
   BinaryTreeVisualizer,
-  normalizeBinaryTree,
   type BinaryTree,
 } from "@structures/BinaryTree";
 import { HistoryMenu, type HistoryOperation } from "@components/HistoryMenu";
@@ -41,7 +40,7 @@ const createInitialBST = (): BinaryTree => {
     name: "Sample BST",
   };
 
-  return normalizeBinaryTree(bstSpec);
+  return bstSpec; // Do not normalize here
 };
 
 /**

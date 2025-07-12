@@ -1,9 +1,8 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { HistoryController } from '@/lib/core/History';
-import { normalizeBinaryTree } from '@/structures/BinaryTree/types';
-import type { BinaryTree } from '@/structures/BinaryTree/types';
-import { registerBinaryTreeAnimations } from '@/structures/BinaryTree/animations';
+import { registerBinaryTreeAnimations } from '@structures/BinaryTree/animations';
+import type { BinaryTree } from '@structures/BinaryTree/types';
 import { loggers } from '@/lib/core';
 import { DEFAULT_AUTOPLAY_INTERVAL } from '@structures/BinaryTree/config';
 
@@ -42,7 +41,7 @@ interface BSTProviderProps {
 export function BSTProvider({ children, initialTree }: BSTProviderProps) {
   // Initialize the history controller
   const historyController = useMemo(() => {
-    const initialState = initialTree ? normalizeBinaryTree(initialTree) : normalizeBinaryTree({ root: null, name: "Empty BST" });
+    const initialState = initialTree ? initialTree : { root: null, name: "Empty BST" };
     const controller = new HistoryController<BinaryTree>(initialState);
     
     loggers.build.info('History controller initialized', {
@@ -56,7 +55,7 @@ export function BSTProvider({ children, initialTree }: BSTProviderProps) {
 
   // Track current state manually for now (TODO: integrate with useHistory in future)
   const [currentState, setCurrentState] = useState<BinaryTree>(() => 
-    historyController.getCurrentVisualizationState() || normalizeBinaryTree({ root: null, name: "Empty BST" })
+    historyController.getCurrentVisualizationState() || { root: null, name: "Empty BST" }
   );
 
   // Animation state
