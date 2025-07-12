@@ -4,23 +4,21 @@ import {
   BSTProvider,
   useBST,
   BSTOperationsMenu,
-  BSTOperationControls
+  BSTOperationControls,
 } from "@structures/BinaryTree/variants/BST";
-import { BinaryTreeVisualizer } from "@structures/BinaryTree/components/BinaryTreeVisualizer";
-import { normalizeBinaryTree, type BinaryTree } from "@structures/BinaryTree";
+import {
+  BinaryTreeVisualizer,
+  normalizeBinaryTree,
+  type BinaryTree,
+} from "@structures/BinaryTree";
 import { HistoryMenu, type HistoryOperation } from "@components/HistoryMenu";
 import { DebugPanel } from "@components/DebugPanel";
-import { 
-  Plus, 
-  Search, 
-  ArrowDown, 
-  ArrowUp,
-} from "lucide-react";
+import { Plus, Search, ArrowDown, ArrowUp } from "lucide-react";
 import { loggers } from "@/lib/core";
 
 // Create initial BST tree declaratively using plain object syntax
 const createInitialBST = (): BinaryTree => {
-  // Build tree structure: 
+  // Build tree structure:
   //       10
   //     /    \
   //    5      15
@@ -32,24 +30,24 @@ const createInitialBST = (): BinaryTree => {
       left: {
         value: 5,
         left: { value: 3, left: null, right: null },
-        right: { value: 7, left: null, right: null }
+        right: { value: 7, left: null, right: null },
       },
       right: {
         value: 15,
         left: { value: 12, left: null, right: null },
-        right: { value: 18, left: null, right: null }
-      }
+        right: { value: 18, left: null, right: null },
+      },
     },
-    name: "Sample BST"
+    name: "Sample BST",
   };
-  
+
   return normalizeBinaryTree(bstSpec);
 };
 
 /**
  * Route for the main BST visualization page using the new renderer architecture.
  */
-export const Route = createFileRoute('/bst')({
+export const Route = createFileRoute("/bst")({
   component: BSTPage,
 });
 
@@ -59,7 +57,7 @@ export const Route = createFileRoute('/bst')({
 function BSTPage() {
   // Create the initial tree declaratively
   const initialTree = createInitialBST();
-  
+
   return (
     <BSTProvider initialTree={initialTree}>
       <BSTPageContent />
@@ -71,31 +69,43 @@ function BSTPage() {
  * BST page content component with visualization, controls, and debug panels.
  */
 function BSTPageContent() {
-  const { historyController, currentState, isExecuting, animationSpeed, setAnimationSpeed } = useBST();
+  const {
+    historyController,
+    currentState,
+    isExecuting,
+    animationSpeed,
+    setAnimationSpeed,
+  } = useBST();
   const [selectedOperationIndex, setSelectedOperationIndex] = useState(-1);
+
+  // Convert numeric animationSpeed to string union for BinaryTreeVisualizer
+  const animationSpeedString: "slow" | "normal" | "fast" =
+    animationSpeed <= 0.5 ? "slow" : animationSpeed >= 1.5 ? "fast" : "normal";
 
   // Debug logging for current state
   useEffect(() => {
-    loggers.page.debug('Current state updated', {
+    loggers.page.debug("Current state updated", {
       data: {
         hasCurrentState: !!currentState,
         stateName: currentState?.name,
         hasRoot: !!currentState?.root,
         rootValue: currentState?.root?.value,
-        isExecuting
-      }
+        isExecuting,
+      },
     });
   }, [currentState, isExecuting]);
 
   // Convert history controller history to HistoryMenu format
-  const historyOperations: HistoryOperation[] = historyController.getHistory().map((group, index) => ({
-    id: group.operation.id,
-    type: group.operation.type,
-    description: group.operation.description,
-    value: group.operation.params.value,
-    timestamp: group.operation.timestamp,
-    index
-  }));
+  const historyOperations: HistoryOperation[] = historyController
+    .getHistory()
+    .map((group, index) => ({
+      id: group.operation.id,
+      type: group.operation.type,
+      description: group.operation.description,
+      value: group.operation.params.value,
+      timestamp: group.operation.timestamp,
+      index,
+    }));
 
   const handleSelectOperation = (operationIndex: number) => {
     historyController.jumpTo(operationIndex);
@@ -133,21 +143,31 @@ function BSTPageContent() {
 
   const canUndo = (() => {
     const history = historyController.getHistory();
-    return history.length > 0 && (selectedOperationIndex > 0 || selectedOperationIndex === -1);
+    return (
+      history.length > 0 &&
+      (selectedOperationIndex > 0 || selectedOperationIndex === -1)
+    );
   })();
 
   const canRedo = (() => {
     const history = historyController.getHistory();
-    return selectedOperationIndex >= 0 && selectedOperationIndex < history.length - 1;
+    return (
+      selectedOperationIndex >= 0 && selectedOperationIndex < history.length - 1
+    );
   })();
 
   const getOperationIcon = (operation: HistoryOperation) => {
     switch (operation.type) {
-      case 'insert': return <Plus className="h-4 w-4" />;
-      case 'search': return <Search className="h-4 w-4" />;
-      case 'findMin': return <ArrowDown className="h-4 w-4" />;
-      case 'findMax': return <ArrowUp className="h-4 w-4" />;
-      default: return <div className="h-4 w-4" />;
+      case "insert":
+        return <Plus className="h-4 w-4" />;
+      case "search":
+        return <Search className="h-4 w-4" />;
+      case "findMin":
+        return <ArrowDown className="h-4 w-4" />;
+      case "findMax":
+        return <ArrowUp className="h-4 w-4" />;
+      default:
+        return <div className="h-4 w-4" />;
     }
   };
 
@@ -155,16 +175,14 @@ function BSTPageContent() {
     <div className="relative h-screen w-full bg-white dark:bg-zinc-900 text-black dark:text-white overflow-hidden">
       {/* Main visualization area */}
       <div className="h-full w-full">
-        <BinaryTreeVisualizer 
+        <BinaryTreeVisualizer
           state={currentState}
-          animationSpeed={animationSpeed}
+          animationSpeed={animationSpeedString}
         />
       </div>
 
       {/* Operations menu */}
-      <BSTOperationsMenu
-        isExecuting={isExecuting}
-      />
+      <BSTOperationsMenu isExecuting={isExecuting} />
 
       {/* Operation controls */}
       <BSTOperationControls

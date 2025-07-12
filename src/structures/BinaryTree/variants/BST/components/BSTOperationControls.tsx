@@ -17,7 +17,7 @@ export function BSTOperationControls({
   onPseudocodeToggle = () => {},
 }: BSTOperationControlsProps & { showPseudocode?: boolean; onPseudocodeToggle?: (v: boolean) => void }) {
   const { historyController, isPlaying, setIsPlaying } = useBST();
-  const [localShowPseudocode, setLocalShowPseudocode] = useState(showPseudocode);
+  const [localShowPseudocode] = useState(showPseudocode);
 
   // Step navigation handlers
   const handleStepForward = useCallback(() => {

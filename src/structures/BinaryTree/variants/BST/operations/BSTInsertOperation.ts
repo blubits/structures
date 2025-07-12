@@ -1,5 +1,5 @@
 import { BaseOperation } from '@/lib/core/operations';
-import type { PseudocodeLine, DataStructureState } from '@/lib/core/types';
+import type { PseudocodeLine } from '@/lib/core/types';
 import type { BinaryTree } from '@/structures/BinaryTree/types';
 import { generateBSTInsertStates } from '../algorithms';
 
