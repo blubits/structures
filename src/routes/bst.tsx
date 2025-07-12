@@ -78,10 +78,6 @@ function BSTPageContent() {
   } = useBST();
   const [selectedOperationIndex, setSelectedOperationIndex] = useState(-1);
 
-  // Convert numeric animationSpeed to string union for BinaryTreeVisualizer
-  const animationSpeedString: "slow" | "normal" | "fast" =
-    animationSpeed <= 0.5 ? "slow" : animationSpeed >= 1.5 ? "fast" : "normal";
-
   // Debug logging for current state
   useEffect(() => {
     loggers.page.debug("Current state updated", {
@@ -177,7 +173,7 @@ function BSTPageContent() {
       <div className="h-full w-full">
         <BinaryTreeVisualizer
           state={currentState}
-          animationSpeed={animationSpeedString}
+          animationSpeed={animationSpeed} // Pass as number
         />
       </div>
 

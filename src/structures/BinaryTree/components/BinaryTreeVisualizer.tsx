@@ -8,9 +8,9 @@ let animationsInitialized = false;
 
 interface BinaryTreeVisualizerProps {
   state: BinaryTree;
-  animationSpeed?: 'slow' | 'normal' | 'fast';
-  disableResize?: boolean; // Add prop to disable resize handling
-  enableReconciliation?: boolean; // Enable smart reconciliation for performance
+  animationSpeed?: number; // Now accepts a number (e.g., 0.25–2, 1 = normal)
+  disableResize?: boolean;
+  enableReconciliation?: boolean;
 }
 
 /**
@@ -18,9 +18,9 @@ interface BinaryTreeVisualizerProps {
  */
 export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
   state,
-  animationSpeed = 'normal',
-  disableResize = true, // Default to true since we now use CSS-based responsive design
-  enableReconciliation = true // Enable reconciliation by default for better performance
+  animationSpeed = 1, // Default to normal speed
+  disableResize = true,
+  enableReconciliation = true
 }) => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -29,7 +29,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
   const prevTreeRef = useRef<BinaryTree | null>(null);
   const prevVisualStateRef = useRef<{
     tree: any;
-    animationSpeed: 'slow' | 'normal' | 'fast';
+    animationSpeed: number;
     theme: 'dark' | 'light';
     animationHints: any;
   } | null>(null);
@@ -106,7 +106,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
 
     const newVisualState = {
       tree: processedTree.root,
-      animationSpeed,
+      animationSpeed, // Pass as number
       theme: (prefersDarkMode ? 'dark' : 'light') as 'dark' | 'light',
       animationHints: processedTree.animationHints // Only source of animation data
     };
@@ -117,8 +117,8 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
 
     return newVisualState;
   }, [
-    processedTree, 
-    animationSpeed, 
+    processedTree,
+    animationSpeed,
     prefersDarkMode
   ]);
 
@@ -137,7 +137,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
     if (!svgRef.current || !containerRef.current) return;
     
     // Skip if the visual state hasn't actually changed (efficient comparison)
-    if (prevVisualStateRef.current && 
+    if (prevVisualStateRef.current &&
         prevVisualStateRef.current.tree === visualState.tree &&
         prevVisualStateRef.current.theme === visualState.theme &&
         prevVisualStateRef.current.animationSpeed === visualState.animationSpeed &&
@@ -145,9 +145,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
       loggers.visualizer.debug('Skipping render - no changes detected');
       return;
     }
-
     prevVisualStateRef.current = visualState;
-    
     try {
       const isFirstRender = !isInitialized.current;
       if (isFirstRender) {
@@ -189,22 +187,15 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
       // Debounce resize handling to prevent infinite loops
       resizeTimeout = setTimeout(() => {
         loggers.resize.debug('Executing debounced resize');
-        
         if (isInitialized.current && svgRef.current && containerRef.current) {
-          // Temporarily disconnect the observer to prevent recursive calls
           resizeObserver.disconnect();
-          
-          // Get the current visualState at the time of resize
           const currentVisualState = {
             tree: processedTree.root,
-            animationSpeed,
+            animationSpeed, // Pass as number
             theme: (prefersDarkMode ? 'dark' : 'light') as 'dark' | 'light',
             animationHints: processedTree.animationHints
           };
-          
           renderBinaryTree(svgRef.current, currentVisualState, false);
-          
-          // Reconnect the observer after a brief delay
           setTimeout(() => {
             if (containerRef.current) {
               resizeObserver.observe(containerRef.current);
@@ -212,7 +203,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
           }, 100);
         }
         resizeTimeout = null;
-      }, 50); // 50ms debounce
+      }, 50);
     });
 
     resizeObserver.observe(containerRef.current);
@@ -224,7 +215,7 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
       }
       resizeObserver.disconnect();
     };
-  }, [processedTree]); // Use processedTree instead of visualState dependency to prevent infinite loop
+  }, [processedTree]);
 
   return (
     <div 
