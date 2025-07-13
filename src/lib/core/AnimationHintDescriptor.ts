@@ -1,4 +1,4 @@
-import type { AnimationHint } from '@/lib/core/types';
+import type { AnimationHint } from '@/types/data-structure';
 import type { GenericAnimationContext } from '@/lib/core/AnimationController';
 
 /**

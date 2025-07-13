@@ -1,4 +1,4 @@
-import type { OperationWithPseudocode, DataStructureState, PseudocodeLine, Operation } from '../types';
+import type { OperationWithPseudocode, DataStructureState, PseudocodeLine, Operation } from '@/types/data-structure';
 
 /**
  * Abstract base class for operations with pseudocode and highlight mapping.

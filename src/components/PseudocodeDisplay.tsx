@@ -1,5 +1,5 @@
 import React from 'react';
-import type { OperationWithPseudocode } from '@/lib/core/types';
+import type { OperationWithPseudocode } from '@/types/data-structure';
 
 export interface PseudocodeDisplayProps {
   operation: OperationWithPseudocode;

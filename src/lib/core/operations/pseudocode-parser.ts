@@ -1,4 +1,4 @@
-import type { PseudocodeLine } from '../types';
+import type { PseudocodeLine } from '@/types/data-structure';
 
 /**
  * Validates a pseudocode array for correct structure.

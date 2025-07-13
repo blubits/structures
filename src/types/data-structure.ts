@@ -4,13 +4,18 @@
  * Base interface for all data structure states
  * Contains common visualization metadata
  */
+export interface AnimationHint {
+  type: string;
+  metadata?: Record<string, any>;
+  duration?: number;
+  delay?: number;
+  sequence?: number;
+}
+
 export interface DataStructureState {
-  animationHints?: Array<{
-    type: string;
-    metadata?: Record<string, any>;
-  }>;
-  name?: string; // Operation description: "Inserting 42", "Traversing left", etc.
-  _metadata?: any; // Internal system metadata for rendering assistance
+  animationHints?: AnimationHint[];
+  name?: string;
+  _metadata?: Record<string, any>;
 }
 
 /**
@@ -18,7 +23,7 @@ export interface DataStructureState {
  */
 export interface Operation {
   id: string;
-  type: string; // 'insert', 'delete', 'search'
+  type: string;
   params: Record<string, any>;
   timestamp: number;
   description: string;
@@ -30,7 +35,55 @@ export interface Operation {
  */
 export interface OperationGroup<TState extends DataStructureState = DataStructureState> {
   operation: Operation;
-  states: TState[]; // Animation states for this operation (final state is last element)
+  states: readonly TState[];
+}
+
+export interface OperationResult<TState extends DataStructureState = DataStructureState> {
+  success: boolean;
+  states: readonly TState[];
+  error?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: readonly string[];
+  warnings?: readonly string[];
+}
+
+export interface StateValidator<TState extends DataStructureState> {
+  validate(state: TState): ValidationResult;
+}
+
+export interface PseudocodeLine {
+  lineNumber: number;
+  content: string;
+  indentLevel: number;
+}
+
+export interface OperationWithPseudocode extends Operation {
+  pseudocode: PseudocodeLine[];
+  generateStates(initialState: DataStructureState): DataStructureState[];
+  generateHighlights(states: DataStructureState[], stepIndex: number): number[];
+}
+
+export interface DataStructureElement {
+  id?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface AnimationMetadataSchema {
+  targetType: 'node' | 'link' | 'tree';
+  nodeTargetFields?: string[];
+  linkSourceField?: string;
+  linkTargetField?: string;
+  validateMetadata?: (metadata: Record<string, any>) => boolean;
+  extractTargets?: (metadata: Record<string, any>) => string[];
+}
+
+export interface AnimationRegistration {
+  animationFunction: NodeAnimationFunction | LinkAnimationFunction | TreeAnimationFunction;
+  metadataSchema: AnimationMetadataSchema;
 }
 
 /**
@@ -44,29 +97,51 @@ export type NodeAnimationFunction = (context: NodeAnimationContext) => void;
 export type LinkAnimationFunction = (context: LinkAnimationContext) => void;
 
 /**
+ * Animation function type for trees
+ */
+export type TreeAnimationFunction = (context: TreeAnimationContext) => void;
+
+/**
  * Context passed to node animations
  */
 export interface NodeAnimationContext {
-  element: SVGElement;
-  node: any; // The data structure node
-  metadata?: Record<string, any>;
+  element: Element;
+  hint: AnimationHint;
+  nodeData?: any;
+  onComplete?: () => void;
 }
 
 /**
  * Context passed to link animations
  */
 export interface LinkAnimationContext {
-  element: SVGElement;
-  sourceNode: any;
-  targetNode: any;
-  metadata?: Record<string, any>;
+  element: Element;
+  hint: AnimationHint;
+  sourceData?: any;
+  targetData?: any;
+  onComplete?: () => void;
 }
 
 /**
  * Context passed to tree-level animations
  */
 export interface TreeAnimationContext {
-  container: SVGElement;
-  state: DataStructureState;
-  metadata?: Record<string, any>;
+  container: Element;
+  hints: readonly AnimationHint[];
+  treeData?: any;
+  onComplete?: () => void;
+}
+
+export function createOperation(
+  type: string,
+  params: Record<string, any>,
+  description: string
+): Operation {
+  return {
+    id: crypto.randomUUID(),
+    type,
+    params,
+    timestamp: Date.now(),
+    description,
+  };
 }

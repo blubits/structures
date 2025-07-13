@@ -1,5 +1,5 @@
 import { loggers } from '@/lib/core';
-import type { AnimationHint } from '@/lib/core/types';
+import type { AnimationHint } from '@/types/data-structure';
 import { processBinaryTreeAnimations } from '@/structures/BinaryTree/animations';
 import {
   calculateTreeLayout,

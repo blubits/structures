@@ -2,7 +2,7 @@ import type {
   DataStructureState,
   Operation,
   OperationGroup,
-} from './types';
+} from '@/types/data-structure';
 
 /**
  * Internal state of the HistoryController.

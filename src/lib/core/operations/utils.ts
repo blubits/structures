@@ -1,4 +1,4 @@
-import type { PseudocodeLine } from '../types';
+import type { PseudocodeLine } from '@/types/data-structure';
 
 /**
  * Helper to parse pseudocode from a string array or string into PseudocodeLine[]

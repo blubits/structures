@@ -12,7 +12,7 @@ import type {
   VisualizationAnimationConfig,
   GenericAnimationContext
 } from '@/lib/core/AnimationController';
-import type { AnimationHint } from '@/lib/core/types';
+import type { AnimationHint } from '@/types/data-structure';
 import { loggers } from '@/lib/core';
 import * as d3 from 'd3';
 import { BINARY_TREE_COLORS } from '@structures/BinaryTree/config.colors';

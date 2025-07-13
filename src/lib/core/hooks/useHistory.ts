@@ -1,5 +1,5 @@
 import { useMemo, useCallback, useSyncExternalStore } from 'react';
-import type { DataStructureState, Operation } from '@/lib/core/types';
+import type { DataStructureState, Operation } from '@/types/data-structure';
 import type { HistoryController } from '@/lib/core/History';
 
 /**
@@ -58,7 +58,7 @@ export interface UseHistoryResult<
   
   // History access
   /** Complete operation history */
-  history: readonly import('../types').OperationGroup<TState>[];
+  history: readonly import('@/types/data-structure').OperationGroup<TState>[];
   
   /** Clears all history and resets to initial state */
   clear: (newInitialState?: TState | null) => void;
