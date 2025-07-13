@@ -382,3 +382,5 @@ export function createSimpleElementAnimationExecutor(
     });
   };
 }
+
+export type { AnimationRegistration } from '@/types/animations';

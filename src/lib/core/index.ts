@@ -6,9 +6,6 @@
  * animation system, and React hooks for building reactive visualizations.
  */
 
-// Core types and interfaces
-export * from './types';
-
 // Utilities
 export { Logger, LogLevel, createLogger, loggers } from './Logger';
 export type { LogContext, LoggerConfig } from './Logger';
