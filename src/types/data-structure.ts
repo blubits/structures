@@ -82,54 +82,8 @@ export interface AnimationMetadataSchema {
 }
 
 export interface AnimationRegistration {
-  animationFunction: NodeAnimationFunction | LinkAnimationFunction | TreeAnimationFunction;
+  animationFunction: any; // Updated to generic type, since specific animation function types are removed
   metadataSchema: AnimationMetadataSchema;
-}
-
-/**
- * Animation function type for nodes
- */
-export type NodeAnimationFunction = (context: NodeAnimationContext) => void;
-
-/**
- * Animation function type for links/edges
- */
-export type LinkAnimationFunction = (context: LinkAnimationContext) => void;
-
-/**
- * Animation function type for trees
- */
-export type TreeAnimationFunction = (context: TreeAnimationContext) => void;
-
-/**
- * Context passed to node animations
- */
-export interface NodeAnimationContext {
-  element: Element;
-  hint: AnimationHint;
-  nodeData?: any;
-  onComplete?: () => void;
-}
-
-/**
- * Context passed to link animations
- */
-export interface LinkAnimationContext {
-  element: Element;
-  hint: AnimationHint;
-  sourceData?: any;
-  targetData?: any;
-  onComplete?: () => void;
-}
-
-/**
- * Context passed to tree-level animations
- */
-export interface TreeAnimationContext {
-  container: Element;
-  hints: readonly AnimationHint[];
-  treeData?: any;
-  onComplete?: () => void;
 }
 
 export function createOperation(
