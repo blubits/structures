@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useMemo } from "react";
 import { useTheme } from "@components/ThemeProvider";
-import { normalizeBinaryTree, reconcileBinaryTree, arrayEqual, type BinaryTree, registerBinaryTreeAnimations, renderBinaryTree } from "@structures/BinaryTree";
+import { arrayEqual, BinaryTree, registerBinaryTreeAnimations, renderBinaryTree } from "@structures/BinaryTree";
 import { loggers } from "@/lib/core";
 
 // Initialize animations once when the module loads
@@ -63,7 +63,13 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
 
     if (enableReconciliation) {
       // Use reconciliation to preserve node identities where possible
-      normalizedTree = reconcileBinaryTree(prevTreeRef.current, state);
+      // The new BinaryTree constructor automatically normalizes, and reconcile is a method
+      if (state instanceof BinaryTree) {
+        normalizedTree = state.reconcile(prevTreeRef.current);
+      } else {
+        // Handle plain objects by creating a new BinaryTree instance
+        normalizedTree = new BinaryTree(state).reconcile(prevTreeRef.current);
+      }
       prevTreeRef.current = normalizedTree;
 
       loggers.visualizer.debug('Reconciliation complete', {
@@ -76,7 +82,13 @@ export const BinaryTreeVisualizer: React.FC<BinaryTreeVisualizerProps> = ({
       });
     } else {
       // Simple normalization without reconciliation
-      normalizedTree = normalizeBinaryTree(state);
+      // The new BinaryTree constructor automatically normalizes
+      if (state instanceof BinaryTree) {
+        normalizedTree = state;
+      } else {
+        // Handle plain objects by creating a new BinaryTree instance
+        normalizedTree = new BinaryTree(state);
+      }
 
       loggers.visualizer.debug('Normalization complete', {
         data: {

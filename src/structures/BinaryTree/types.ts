@@ -1,113 +1,558 @@
-import type { DataStructureState, DataStructureElement } from '@/types/data-structure';
+import type { DataStructureState, DataStructureElement, ValidationResult } from '@/types/data-structure';
 import type { AnimationHint } from '@/types/animations';
+import { traverseDown } from './animations';
 
 /**
  * Represents a node in a binary tree.
  * - Inherits id and metadata from DataStructureElement.
  * - `id` and `state` are optional for user input, but always present after normalization.
+ * - This is a class that provides immutable node operations.
  */
-export interface BinaryTreeNode extends DataStructureElement {
-  value: number;
-  left: BinaryTreeNode | null;
-  right: BinaryTreeNode | null;
-  state?: 'default' | 'active' | 'visited';
-}
+export class BinaryTreeNode implements Omit<DataStructureElement, 'clone'> {
+  readonly value: number;
+  readonly left: BinaryTreeNode | null;
+  readonly right: BinaryTreeNode | null;
+  readonly state: 'default' | 'active' | 'visited';
+  readonly id: string;
+  readonly metadata?: Record<string, any>;
 
-/**
- * Represents a binary tree data structure state.
- * Extends DataStructureState for shared fields.
- */
-export interface BinaryTree extends DataStructureState {
-  root: BinaryTreeNode | null;
-}
-
-/**
- * Helper: Checks if a BinaryTree is normalized (all nodes have id and state).
- */
-export function isNormalizedBinaryTree(tree: BinaryTree): boolean {
-  function checkNode(node: BinaryTreeNode | null): boolean {
-    if (!node) return true;
-    if (!node.id || !node.state) return false;
-    return checkNode(node.left) && checkNode(node.right);
+  constructor(data: {
+    value: number;
+    left?: BinaryTreeNode | null;
+    right?: BinaryTreeNode | null;
+    state?: 'default' | 'active' | 'visited';
+    id?: string;
+    metadata?: Record<string, any>;
+  }) {
+    this.value = data.value;
+    this.left = data.left || null;
+    this.right = data.right || null;
+    this.state = data.state || 'default';
+    this.id = data.id || this.generateId();
+    this.metadata = data.metadata ? { ...data.metadata } : undefined;
+    
+    // Freeze for immutability
+    Object.freeze(this);
   }
-  return checkNode(tree.root);
-}
 
-/**
- * Generates a stable ID for a node based on its path in the tree.
- */
-function generateStableNodeId(
-  value: number,
-  path: string = 'root',
-  existingId?: string
-): string {
-  if (existingId) return existingId;
-  return `node-${path}-${value}`;
-}
-
-/**
- * Converts a BinaryTree into a normalized BinaryTree (all nodes have id and state).
- */
-export function normalizeBinaryTreeNode(
-  node: BinaryTreeNode | null,
-  path: string = 'root'
-): BinaryTreeNode | null {
-  if (!node) return null;
-  const stableId = generateStableNodeId(node.value, path, node.id);
-  return {
-    value: node.value,
-    left: normalizeBinaryTreeNode(node.left, `${path}.L`),
-    right: normalizeBinaryTreeNode(node.right, `${path}.R`),
-    state: node.state || 'default',
-    id: stableId,
-    metadata: node.metadata ? { ...node.metadata } : undefined,
-  };
-}
-
-export function normalizeBinaryTree(tree: BinaryTree): BinaryTree {
-  return {
-    ...tree,
-    root: normalizeBinaryTreeNode(tree.root),
-  };
-}
-
-/**
- * Smart reconciliation function that preserves node identities across updates.
- */
-export function reconcileBinaryTree(
-  prevTree: BinaryTree | null,
-  newTree: BinaryTree
-): BinaryTree {
-  const normalizedNew = normalizeBinaryTree(newTree);
-  if (!prevTree || !prevTree.root || !normalizedNew.root) {
-    return normalizedNew;
+  private generateId(): string {
+    return `node-${this.value}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
-  const reconciledRoot = reconcileNodes(prevTree.root, normalizedNew.root);
-  return {
-    ...normalizedNew,
-    root: reconciledRoot,
-  };
+
+  clone(updates?: Partial<BinaryTreeNode>): BinaryTreeNode {
+    return new BinaryTreeNode({
+      value: updates?.value ?? this.value,
+      left: updates?.left ?? this.left,
+      right: updates?.right ?? this.right,
+      state: updates?.state ?? this.state,
+      id: updates?.id ?? this.id,
+      metadata: updates?.metadata ?? (this.metadata ? { ...this.metadata } : undefined),
+    });
+  }
 }
 
-function reconcileNodes(
-  prevNode: BinaryTreeNode | null,
-  newNode: BinaryTreeNode | null
-): BinaryTreeNode | null {
-  if (!prevNode && !newNode) return null;
-  if (!prevNode || !newNode) return newNode;
-  if (prevNode.value === newNode.value) {
+/**
+ * Binary Tree class implementing the enhanced DataStructureState interface.
+ * Provides immutable, method-based state transitions with automatic normalization.
+ */
+export class BinaryTree implements DataStructureState {
+  readonly root: BinaryTreeNode | null;
+  readonly animationHints?: AnimationHint[];
+  readonly name?: string;
+  readonly _metadata?: Record<string, any>;
+  
+  // Private state for traversal operations
+  private readonly currentPath: string[] = [];
+
+  constructor(data: {
+    root?: BinaryTreeNode | null;
+    animationHints?: AnimationHint[];
+    name?: string;
+    _metadata?: Record<string, any>;
+    currentPath?: string[];
+  }) {
+    // Normalize the tree during construction
+    const normalized = this.normalizeTree(data.root || null);
+    this.root = normalized;
+    this.animationHints = data.animationHints ? [...data.animationHints] : undefined;
+    this.name = data.name;
+    this._metadata = data._metadata ? { ...data._metadata } : undefined;
+    this.currentPath = data.currentPath ? [...data.currentPath] : [];
+    
+    // Freeze for immutability
+    Object.freeze(this);
+    Object.freeze(this.currentPath);
+  }
+
+  // Static factory method for DataStructureClass interface
+  static from(json: Record<string, any>): BinaryTree {
+    const root = json.root ? BinaryTree.nodeFromJSON(json.root) : null;
+    return new BinaryTree({
+      root,
+      animationHints: json.animationHints,
+      name: json.name,
+      _metadata: json._metadata,
+      currentPath: json.currentPath,
+    });
+  }
+
+  private static nodeFromJSON(nodeData: any): BinaryTreeNode {
+    return new BinaryTreeNode({
+      value: nodeData.value,
+      left: nodeData.left ? BinaryTree.nodeFromJSON(nodeData.left) : null,
+      right: nodeData.right ? BinaryTree.nodeFromJSON(nodeData.right) : null,
+      state: nodeData.state,
+      id: nodeData.id,
+      metadata: nodeData.metadata,
+    });
+  }
+
+  // Abstract base class method implementations
+
+  toJSON(): Record<string, any> {
     return {
-      ...newNode,
-      id: prevNode.id, // Preserve the existing ID for reconciliation
-      left: reconcileNodes(prevNode.left, newNode.left),
-      right: reconcileNodes(prevNode.right, newNode.right),
+      root: this.root ? this.nodeToJSON(this.root) : null,
+      animationHints: this.animationHints,
+      name: this.name,
+      _metadata: this._metadata,
+      currentPath: this.currentPath,
     };
   }
-  return {
-    ...newNode,
-    left: reconcileNodes(null, newNode.left),
-    right: reconcileNodes(null, newNode.right),
-  };
+
+  private nodeToJSON(node: BinaryTreeNode): any {
+    return {
+      value: node.value,
+      left: node.left ? this.nodeToJSON(node.left) : null,
+      right: node.right ? this.nodeToJSON(node.right) : null,
+      state: node.state,
+      id: node.id,
+      metadata: node.metadata,
+    };
+  }
+
+  reconcile(prevState: DataStructureState | null): BinaryTree {
+    if (!prevState || !(prevState instanceof BinaryTree)) {
+      return this;
+    }
+    
+    const reconciledRoot = this.reconcileNodes(prevState.root, this.root);
+    return new BinaryTree({
+      root: reconciledRoot,
+      animationHints: this.animationHints,
+      name: this.name,
+      _metadata: this._metadata,
+      currentPath: this.currentPath,
+    });
+  }
+
+  private reconcileNodes(
+    prevNode: BinaryTreeNode | null,
+    newNode: BinaryTreeNode | null
+  ): BinaryTreeNode | null {
+    if (!prevNode && !newNode) return null;
+    if (!prevNode || !newNode) return newNode;
+    
+    if (prevNode.value === newNode.value) {
+      return newNode.clone({
+        id: prevNode.id, // Preserve existing ID for reconciliation
+        left: this.reconcileNodes(prevNode.left, newNode.left),
+        right: this.reconcileNodes(prevNode.right, newNode.right),
+      });
+    }
+    
+    return newNode.clone({
+      left: this.reconcileNodes(null, newNode.left),
+      right: this.reconcileNodes(null, newNode.right),
+    });
+  }
+
+  validate(): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    if (this.root) {
+      this.validateNode(this.root, errors, warnings);
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings,
+    };
+  }
+
+  private validateNode(node: BinaryTreeNode, errors: string[], warnings: string[]): void {
+    if (!node.id) {
+      errors.push(`Node with value ${node.value} is missing an ID`);
+    }
+    
+    if (!node.state) {
+      warnings.push(`Node with value ${node.value} has no state specified`);
+    }
+
+    if (node.left) {
+      this.validateNode(node.left, errors, warnings);
+    }
+    
+    if (node.right) {
+      this.validateNode(node.right, errors, warnings);
+    }
+  }
+
+  // Binary Tree specific methods (from BinaryTreeStateBuilder)
+
+  /**
+   * Starts a traversal operation by resetting current path.
+   */
+  startTraversal(): BinaryTree {
+    return new BinaryTree({
+      root: this.root,
+      animationHints: this.animationHints,
+      name: this.name,
+      _metadata: this._metadata,
+      currentPath: [], // Reset path
+    });
+  }
+
+  /**
+   * Traverses to the left child of the current node.
+   */
+  traverseLeft(): BinaryTree {
+    const currentNode = this.getCurrentNode();
+    if (!currentNode) return this;
+    
+    const animationHints: AnimationHint[] = [];
+    if (currentNode.left) {
+      animationHints.push(
+        traverseDown.create({ 
+          sourceValue: currentNode.value, 
+          targetValue: currentNode.left.value 
+        })
+      );
+    }
+    
+    return new BinaryTree({
+      root: this.root,
+      animationHints,
+      name: `Going left`,
+      _metadata: this._metadata,
+      currentPath: [...this.currentPath, 'left'],
+    });
+  }
+
+  /**
+   * Traverses to the right child of the current node.
+   */
+  traverseRight(): BinaryTree {
+    const currentNode = this.getCurrentNode();
+    if (!currentNode) return this;
+    
+    const animationHints: AnimationHint[] = [];
+    if (currentNode.right) {
+      animationHints.push(
+        traverseDown.create({ 
+          sourceValue: currentNode.value, 
+          targetValue: currentNode.right.value 
+        })
+      );
+    }
+    
+    return new BinaryTree({
+      root: this.root,
+      animationHints,
+      name: `Going right`,
+      _metadata: this._metadata,
+      currentPath: [...this.currentPath, 'right'],
+    });
+  }
+
+  /**
+   * Inserts a node at the current path position.
+   */
+  insertHere(value: number): BinaryTree {
+    const newNode = new BinaryTreeNode({
+      value,
+      left: null,
+      right: null,
+      state: 'active',
+    });
+
+    if (this.currentPath.length === 0) {
+      // Insert as root
+      return new BinaryTree({
+        root: newNode,
+        name: `Inserting ${value} as root`,
+        _metadata: this._metadata,
+        currentPath: this.currentPath,
+      });
+    } else {
+      // Insert as child
+      const parentPath = this.currentPath.slice(0, -1);
+      const direction = this.currentPath[this.currentPath.length - 1] as 'left' | 'right';
+      const parentNode = this.getNodeAtPath(parentPath);
+      
+      if (parentNode) {
+        const updatedParent = parentNode.clone({
+          [direction]: newNode
+        });
+        const newRoot = this.updateTreeAtPath(parentPath, updatedParent);
+        const side = direction === 'left' ? 'left' : 'right';
+        
+        return new BinaryTree({
+          root: newRoot,
+          name: `Inserting ${value} as ${side} child of ${parentNode.value}`,
+          _metadata: this._metadata,
+          currentPath: this.currentPath,
+        });
+      }
+    }
+    
+    return this;
+  }
+
+  /**
+   * Inserts a left child to the current node.
+   */
+  insertLeftChild(value: number): BinaryTree {
+    const currentNode = this.getCurrentNode();
+    if (!currentNode) return this;
+
+    const newNode = new BinaryTreeNode({
+      value,
+      left: null,
+      right: null,
+      state: 'default',
+    });
+
+    const updatedCurrentNode = currentNode.clone({ left: newNode });
+    const newRoot = this.updateTreeAtCurrentPath(updatedCurrentNode);
+
+    return new BinaryTree({
+      root: newRoot,
+      name: `Inserting ${value} as left child of ${currentNode.value}`,
+      _metadata: this._metadata,
+      currentPath: this.currentPath,
+    });
+  }
+
+  /**
+   * Inserts a right child to the current node.
+   */
+  insertRightChild(value: number): BinaryTree {
+    const currentNode = this.getCurrentNode();
+    if (!currentNode) return this;
+
+    const newNode = new BinaryTreeNode({
+      value,
+      left: null,
+      right: null,
+      state: 'default',
+    });
+
+    const updatedCurrentNode = currentNode.clone({ right: newNode });
+    const newRoot = this.updateTreeAtCurrentPath(updatedCurrentNode);
+
+    return new BinaryTree({
+      root: newRoot,
+      name: `Inserting ${value} as right child of ${currentNode.value}`,
+      _metadata: this._metadata,
+      currentPath: this.currentPath,
+    });
+  }
+
+  /**
+   * Compares current node with a value and marks it as active.
+   */
+  compareWith(value: number): BinaryTree {
+    const currentNode = this.getCurrentNode();
+    if (!currentNode) return this;
+
+    // Mark previously active nodes as visited
+    const rootWithVisited = this.root ? this.markActiveNodesAsVisited(this.root) : null;
+    
+    // Mark current node as active
+    const updatedNode = currentNode.clone({ state: 'active' });
+    const newRoot = this.updateTreeAtCurrentPath(updatedNode, rootWithVisited);
+
+    return new BinaryTree({
+      root: newRoot,
+      name: `Comparing ${value} with ${currentNode.value}`,
+      _metadata: this._metadata,
+      currentPath: this.currentPath,
+    });
+  }
+
+  /**
+   * Marks the current node as visited.
+   */
+  markVisited(): BinaryTree {
+    const currentNode = this.getCurrentNode();
+    if (!currentNode) return this;
+
+    const updatedNode = currentNode.clone({ state: 'visited' });
+    const newRoot = this.updateTreeAtCurrentPath(updatedNode);
+
+    return new BinaryTree({
+      root: newRoot,
+      name: this.name,
+      _metadata: this._metadata,
+      currentPath: this.currentPath,
+    });
+  }
+
+  /**
+   * Resets all nodes to default state.
+   */
+  resetAll(): BinaryTree {
+    const resetRoot = this.root ? this.resetAllNodesToDefault(this.root) : null;
+
+    return new BinaryTree({
+      root: resetRoot,
+      name: this.name,
+      _metadata: this._metadata,
+      currentPath: this.currentPath,
+    });
+  }
+
+  /**
+   * Sets the name/description of the current state.
+   */
+  setName(name: string): BinaryTree {
+    return new BinaryTree({
+      root: this.root,
+      animationHints: this.animationHints,
+      name,
+      _metadata: this._metadata,
+      currentPath: this.currentPath,
+    });
+  }
+
+  // Utility methods
+
+  /**
+   * Gets the current node based on the current path.
+   */
+  getCurrentNode(): BinaryTreeNode | null {
+    return this.getNodeAtPath(this.currentPath);
+  }
+
+  /**
+   * Checks if the current node has a left child.
+   */
+  hasLeftChild(): boolean {
+    const currentNode = this.getCurrentNode();
+    return currentNode?.left !== null && currentNode?.left !== undefined;
+  }
+
+  /**
+   * Checks if the current node has a right child.
+   */
+  hasRightChild(): boolean {
+    const currentNode = this.getCurrentNode();
+    return currentNode?.right !== null && currentNode?.right !== undefined;
+  }
+
+  /**
+   * Checks if a node exists at the current path.
+   */
+  nodeExists(): boolean {
+    return this.getCurrentNode() !== null;
+  }
+
+  // Private helper methods
+
+  private getNodeAtPath(path: string[]): BinaryTreeNode | null {
+    let currentNode = this.root;
+    for (const direction of path) {
+      if (!currentNode) return null;
+      currentNode = direction === 'left' ? currentNode.left : currentNode.right;
+    }
+    return currentNode;
+  }
+
+  private updateTreeAtCurrentPath(updatedNode: BinaryTreeNode, rootOverride?: BinaryTreeNode | null): BinaryTreeNode | null {
+    return this.updateTreeAtPath(this.currentPath, updatedNode, rootOverride);
+  }
+
+  private updateTreeAtPath(path: string[], updatedNode: BinaryTreeNode, rootOverride?: BinaryTreeNode | null): BinaryTreeNode | null {
+    const currentRoot = rootOverride !== undefined ? rootOverride : this.root;
+    
+    if (!currentRoot) {
+      return updatedNode;
+    }
+    
+    return this.updateTreeAtPathRecursive(currentRoot, path, updatedNode);
+  }
+
+  private updateTreeAtPathRecursive(
+    root: BinaryTreeNode,
+    path: string[],
+    updatedNode: BinaryTreeNode
+  ): BinaryTreeNode {
+    if (path.length === 0) {
+      return updatedNode;
+    }
+    
+    const [direction, ...restPath] = path;
+    if (direction === 'left') {
+      return root.clone({
+        left: root.left ? this.updateTreeAtPathRecursive(root.left, restPath, updatedNode) : null
+      });
+    } else if (direction === 'right') {
+      return root.clone({
+        right: root.right ? this.updateTreeAtPathRecursive(root.right, restPath, updatedNode) : null
+      });
+    }
+    return root;
+  }
+
+  private resetAllNodesToDefault(node: BinaryTreeNode | null): BinaryTreeNode | null {
+    if (!node) return null;
+    return node.clone({
+      state: 'default',
+      left: this.resetAllNodesToDefault(node.left),
+      right: this.resetAllNodesToDefault(node.right)
+    });
+  }
+
+  private markActiveNodesAsVisited(node: BinaryTreeNode | null): BinaryTreeNode | null {
+    if (!node) return null;
+    return node.clone({
+      state: node.state === 'active' ? 'visited' : node.state,
+      left: this.markActiveNodesAsVisited(node.left),
+      right: this.markActiveNodesAsVisited(node.right)
+    });
+  }
+
+  private normalizeTree(root: BinaryTreeNode | null): BinaryTreeNode | null {
+    if (!root) return null;
+    
+    return this.normalizeNode(root, 'root');
+  }
+
+  private normalizeNode(node: BinaryTreeNode | null, path: string = 'root'): BinaryTreeNode | null {
+    if (!node) return null;
+    
+    const stableId = this.generateStableNodeId(node.value, path, node.id);
+    
+    return new BinaryTreeNode({
+      value: node.value,
+      left: this.normalizeNode(node.left, `${path}.L`),
+      right: this.normalizeNode(node.right, `${path}.R`),
+      state: node.state || 'default',
+      id: stableId,
+      metadata: node.metadata ? { ...node.metadata } : undefined,
+    });
+  }
+
+  private generateStableNodeId(
+    value: number,
+    path: string = 'root',
+    existingId?: string
+  ): string {
+    if (existingId) return existingId;
+    return `node-${path}-${value}`;
+  }
 }
 
 /**
@@ -249,6 +694,7 @@ export const DEFAULT_BINARY_TREE_CONFIG: BinaryTreeConfig = {
 
 /**
  * Helper functions for working with binary tree nodes.
+ * These are kept for backwards compatibility and utility purposes.
  */
 
 /**
@@ -256,14 +702,10 @@ export const DEFAULT_BINARY_TREE_CONFIG: BinaryTreeConfig = {
  */
 export function updateBinaryTreeNode(
   node: BinaryTreeNode,
-  updates: Partial<Omit<BinaryTreeNode, 'id'>>
+  updates: Partial<BinaryTreeNode>
 ): BinaryTreeNode {
-  return {
-    ...node,
-    ...updates,
-    // Ensure metadata is copied for immutability
-    metadata: updates.metadata ? { ...updates.metadata } : node.metadata,
-  };
+  // Since BinaryTreeNode is now a class, all nodes have the clone method
+  return node.clone(updates);
 }
 
 /**
@@ -271,15 +713,19 @@ export function updateBinaryTreeNode(
  */
 export function updateBinaryTree(
   tree: BinaryTree,
-  updates: Partial<BinaryTree>
+  updates: {
+    root?: BinaryTreeNode | null;
+    animationHints?: AnimationHint[];
+    name?: string;
+    _metadata?: Record<string, any>;
+  }
 ): BinaryTree {
-  return {
-    ...tree,
-    ...updates,
-    // Ensure arrays are copied for immutability
-    animationHints: updates.animationHints ? [...updates.animationHints] : tree.animationHints,
-    _metadata: updates._metadata ? { ...updates._metadata } : tree._metadata,
-  };
+  return new BinaryTree({
+    root: updates.root ?? tree.root,
+    animationHints: updates.animationHints ?? tree.animationHints,
+    name: updates.name ?? tree.name,
+    _metadata: updates._metadata ?? tree._metadata,
+  });
 }
 
 /**

@@ -8,7 +8,8 @@ import {
 } from "@structures/BinaryTree/variants/BST";
 import {
   BinaryTreeVisualizer,
-  type BinaryTree,
+  BinaryTree,
+  BinaryTreeNode,
 } from "@structures/BinaryTree";
 import { HistoryMenu, type HistoryOperation } from "@components/HistoryMenu";
 import { DebugPanel } from "@components/DebugPanel";
@@ -23,22 +24,22 @@ const createInitialBST = (): BinaryTree => {
   //    5      15
   //   / \    /  \
   //  3   7  12  18
-  const bstSpec: BinaryTree = {
-    root: {
+  const bstSpec = new BinaryTree({
+    root: new BinaryTreeNode({
       value: 10,
-      left: {
+      left: new BinaryTreeNode({
         value: 5,
-        left: { value: 3, left: null, right: null },
-        right: { value: 7, left: null, right: null },
-      },
-      right: {
+        left: new BinaryTreeNode({ value: 3, left: null, right: null }),
+        right: new BinaryTreeNode({ value: 7, left: null, right: null }),
+      }),
+      right: new BinaryTreeNode({
         value: 15,
-        left: { value: 12, left: null, right: null },
-        right: { value: 18, left: null, right: null },
-      },
-    },
+        left: new BinaryTreeNode({ value: 12, left: null, right: null }),
+        right: new BinaryTreeNode({ value: 18, left: null, right: null }),
+      }),
+    }),
     name: "Sample BST",
-  };
+  });
 
   return bstSpec; // Do not normalize here
 };

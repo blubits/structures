@@ -1,16 +1,15 @@
-import type { BinaryTree } from '@structures/BinaryTree';
-import { BinaryTreeStateBuilder } from '@structures/BinaryTree';
+import { BinaryTree } from '@structures/BinaryTree';
 
 /**
- * BST Algorithm Implementations with Smart State Builder
+ * BST Algorithm Implementations with New BinaryTree Class API
  * 
- * This refactored version uses a BinaryTreeStateBuilder that automatically
- * handles path tracking and state management, allowing algorithms to focus
- * on BST logic rather than visualization details.
+ * This refactored version uses the new BinaryTree class with method chaining
+ * instead of the old BinaryTreeStateBuilder. All methods are pure and return
+ * new immutable instances, allowing for clean state transitions.
  * 
  * Key improvements:
  * - Algorithms mirror actual BST implementations (iterative with while loops)
- * - No manual path management - handled automatically by builder
+ * - Method chaining with immutable state transitions
  * - Clean, readable code focused on BST logic
  * - Automatic state creation and animation hints
  * - Educational value preserved through step-by-step visualization
@@ -26,60 +25,62 @@ import { BinaryTreeStateBuilder } from '@structures/BinaryTree';
  * with while loops, making it educational and easy to understand.
  */
 export function generateBSTInsertStates(tree: BinaryTree, value: number): BinaryTree[] {
-  const builder = new BinaryTreeStateBuilder(tree);
+  const states: BinaryTree[] = [];
   
   // Handle empty tree
   if (!tree.root) {
-    return builder
-      .insertHere(value)
-      .resetAll()
-      .setName('Insert complete')
-      .getStates();
+    const emptyTree = tree.startTraversal();
+    const insertedTree = emptyTree.insertHere(value);
+    const finalTree = insertedTree.resetAll().setName('Insert complete');
+    return [emptyTree, insertedTree, finalTree];
   }
   
+  // Start with clean traversal state
+  let currentTree = tree.startTraversal();
+  
   // Standard BST insertion - mirrors actual BST algorithm
-  while (builder.nodeExists()) {
-    const currentNode = builder.getCurrentNode()!;
+  while (currentTree.nodeExists()) {
+    const currentNode = currentTree.getCurrentNode()!;
     
     // Compare step
-    builder.compareWith(value);
+    currentTree = currentTree.compareWith(value);
+    states.push(currentTree);
     
     if (value === currentNode.value) {
       // Value already exists
-      return builder
-        .setName(`${value} already exists - no insertion`)
-        .resetAll()
-        .setName('No changes made')
-        .getStates();
-    }
-    
-    // Choose direction and check if we can traverse or need to insert
-    if (value < currentNode.value) {
-      if (builder.hasLeftChild()) {
-        builder.traverseLeft();
+      const finalTree = currentTree.setName(`${value} already exists - no insertion`);
+      states.push(finalTree);
+      return states;
+    } else if (value < currentNode.value) {
+      if (currentTree.hasLeftChild()) {
+        // Continue traversing left
+        currentTree = currentTree.traverseLeft();
+        states.push(currentTree);
       } else {
-        // Insert as left child - don't traverse, just insert directly
-        builder.insertLeftChild(value);
-        return builder
-          .resetAll()
-          .setName('Insert complete')
-          .getStates();
+        // Insert as left child
+        currentTree = currentTree.traverseLeft().insertHere(value);
+        states.push(currentTree);
+        break;
       }
     } else {
-      if (builder.hasRightChild()) {
-        builder.traverseRight();
+      if (currentTree.hasRightChild()) {
+        // Continue traversing right
+        currentTree = currentTree.traverseRight();
+        states.push(currentTree);
       } else {
-        // Insert as right child - don't traverse, just insert directly
-        builder.insertRightChild(value);
-        return builder
-          .resetAll()
-          .setName('Insert complete')
-          .getStates();
+        // Insert as right child
+        currentTree = currentTree.traverseRight().insertHere(value);
+        states.push(currentTree);
+        break;
       }
     }
   }
   
-  return builder.getStates();
+  // Final state - reset all nodes and mark completion
+  const finalTree = currentTree.resetAll().setName('Insert complete');
+  states.push(finalTree);
+  
+  return states;
 }
 
 /**
@@ -92,56 +93,58 @@ export function generateBSTInsertStates(tree: BinaryTree, value: number): Binary
  * with while loops, making it educational and easy to understand.
  */
 export function generateBSTSearchStates(tree: BinaryTree, value: number): BinaryTree[] {
-  const builder = new BinaryTreeStateBuilder(tree);
+  const states: BinaryTree[] = [];
   
   // Handle empty tree
   if (!tree.root) {
-    return builder
-      .setName(`Tree is empty - ${value} not found`)
-      .getStates();
+    const emptyState = tree.setName(`Tree is empty - ${value} not found`);
+    return [emptyState];
   }
   
+  // Start with clean traversal state
+  let currentTree = tree.startTraversal();
+  
   // Standard BST search - mirrors actual BST algorithm
-  while (builder.nodeExists()) {
-    const currentNode = builder.getCurrentNode()!;
+  while (currentTree.nodeExists()) {
+    const currentNode = currentTree.getCurrentNode()!;
     
     // Compare step
-    builder.compareWith(value);
+    currentTree = currentTree.compareWith(value);
+    states.push(currentTree);
     
     if (value === currentNode.value) {
       // Found!
-      return builder
-        .setName(`Found ${value}!`)
-        .resetAll()
-        .setName('Search complete')
-        .getStates();
+      const foundTree = currentTree.setName(`Found ${value}!`);
+      const finalTree = foundTree.resetAll().setName('Search complete');
+      states.push(foundTree, finalTree);
+      return states;
     }
     
     // Choose direction and traverse
     if (value < currentNode.value) {
-      if (builder.hasLeftChild()) {
-        builder.traverseLeft();
+      if (currentTree.hasLeftChild()) {
+        currentTree = currentTree.traverseLeft();
+        states.push(currentTree);
       } else {
-        return builder
-          .setName(`${value} not found`)
-          .resetAll()
-          .setName('Search complete')
-          .getStates();
+        const notFoundTree = currentTree.setName(`${value} not found`);
+        const finalTree = notFoundTree.resetAll().setName('Search complete');
+        states.push(notFoundTree, finalTree);
+        return states;
       }
     } else {
-      if (builder.hasRightChild()) {
-        builder.traverseRight();
+      if (currentTree.hasRightChild()) {
+        currentTree = currentTree.traverseRight();
+        states.push(currentTree);
       } else {
-        return builder
-          .setName(`${value} not found`)
-          .resetAll()
-          .setName('Search complete')
-          .getStates();
+        const notFoundTree = currentTree.setName(`${value} not found`);
+        const finalTree = notFoundTree.resetAll().setName('Search complete');
+        states.push(notFoundTree, finalTree);
+        return states;
       }
     }
   }
   
-  return builder.getStates();
+  return states;
 }
 
 /**
@@ -153,34 +156,37 @@ export function generateBSTSearchStates(tree: BinaryTree, value: number): Binary
  * In a BST, the minimum value is always the leftmost node.
  */
 export function generateBSTFindMinStates(tree: BinaryTree): BinaryTree[] {
-  const builder = new BinaryTreeStateBuilder(tree);
+  const states: BinaryTree[] = [];
   
   if (!tree.root) {
-    return builder.setName('Tree is empty - no minimum').getStates();
+    const emptyState = tree.setName('Tree is empty - no minimum');
+    return [emptyState];
   }
   
+  // Start traversal
+  let currentTree = tree.startTraversal();
+  
   // Keep going left until we find the leftmost node
-  while (builder.nodeExists()) {
-    const currentNode = builder.getCurrentNode()!;
+  while (currentTree.nodeExists()) {
+    const currentNode = currentTree.getCurrentNode()!;
     
-    if (builder.hasLeftChild()) {
-      builder
-        .compareWith(currentNode.value)
+    if (currentTree.hasLeftChild()) {
+      currentTree = currentTree.compareWith(currentNode.value)
         .setName(`Current node: ${currentNode.value}, going left to find minimum`)
         .traverseLeft();
+      states.push(currentTree);
     } else {
       // Found the minimum
       const minValue = currentNode.value;
-      return builder
-        .compareWith(minValue)
-        .setName(`Found minimum: ${minValue}`)
-        .resetAll()
-        .setName('Find minimum complete')
-        .getStates();
+      const foundTree = currentTree.compareWith(minValue)
+        .setName(`Found minimum: ${minValue}`);
+      const finalTree = foundTree.resetAll().setName('Find minimum complete');
+      states.push(foundTree, finalTree);
+      break;
     }
   }
   
-  return builder.getStates();
+  return states;
 }
 
 /**
@@ -192,33 +198,36 @@ export function generateBSTFindMinStates(tree: BinaryTree): BinaryTree[] {
  * In a BST, the maximum value is always the rightmost node.
  */
 export function generateBSTFindMaxStates(tree: BinaryTree): BinaryTree[] {
-  const builder = new BinaryTreeStateBuilder(tree);
+  const states: BinaryTree[] = [];
   
   if (!tree.root) {
-    return builder.setName('Tree is empty - no maximum').getStates();
+    const emptyState = tree.setName('Tree is empty - no maximum');
+    return [emptyState];
   }
   
+  // Start traversal
+  let currentTree = tree.startTraversal();
+  
   // Keep going right until we find the rightmost node
-  while (builder.nodeExists()) {
-    const currentNode = builder.getCurrentNode()!;
+  while (currentTree.nodeExists()) {
+    const currentNode = currentTree.getCurrentNode()!;
     
-    if (builder.hasRightChild()) {
-      builder
-        .compareWith(currentNode.value)
+    if (currentTree.hasRightChild()) {
+      currentTree = currentTree.compareWith(currentNode.value)
         .setName(`Current node: ${currentNode.value}, going right to find maximum`)
         .traverseRight();
+      states.push(currentTree);
     } else {
       // Found the maximum
       const maxValue = currentNode.value;
-      return builder
-        .compareWith(maxValue)
-        .setName(`Found maximum: ${maxValue}`)
-        .resetAll()
-        .setName('Find maximum complete')
-        .getStates();
+      const foundTree = currentTree.compareWith(maxValue)
+        .setName(`Found maximum: ${maxValue}`);
+      const finalTree = foundTree.resetAll().setName('Find maximum complete');
+      states.push(foundTree, finalTree);
+      break;
     }
   }
   
-  return builder.getStates();
+  return states;
 }
 

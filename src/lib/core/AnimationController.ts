@@ -2,7 +2,7 @@
  * Generic Animation Controller for any visualization type. Visualizations register their own animation types and provide corresponding animation functions and metadata schemas, enabling a flexible system for any visualization now or in the future.
  */
 
-import type { AnimationHint, AnimationMetadataSchema, AnimationRegistration } from '@/types/animations';
+import type { AnimationHint, AnimationRegistration } from '@/types/animations';
 import { loggers } from '@/lib/core/Logger';
 
 /**

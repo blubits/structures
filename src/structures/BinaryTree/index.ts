@@ -15,9 +15,6 @@ export * from '@structures/BinaryTree/config';
 // Generic Binary Tree Components
 export { BinaryTreeVisualizer } from '@structures/BinaryTree/components/BinaryTreeVisualizer';
 
-// Algorithms
-export { BinaryTreeStateBuilder } from '@/structures/BinaryTree/utils/BinaryTreeStateBuilder';
-
 // Animation registration and helpers
 export { registerBinaryTreeAnimations, processBinaryTreeAnimations } from '@structures/BinaryTree/animations';
 
