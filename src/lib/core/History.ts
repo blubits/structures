@@ -1,8 +1,5 @@
-import type {
-  DataStructureState,
-  Operation,
-  OperationGroup,
-} from '@/types/data-structure';
+import type { DataStructureState } from '@/types/data-structure';
+import type { Operation, OperationGroup } from '@/types/operations';
 
 /**
  * Internal state of the HistoryController.

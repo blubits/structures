@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Plus, Search, ArrowDown, ArrowUp, Trash2, Menu } from "lucide-react";
 import { useBST } from "@structures/BinaryTree/variants/BST";
-import { createOperation } from '@/types/data-structure';
+import { createOperation } from '@/types/operations';
 import {
   generateBSTSearchStates,
   generateBSTFindMinStates,

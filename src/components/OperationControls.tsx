@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FaStepBackward, FaStepForward, FaPlay, FaPause, FaRedo, FaTachometerAlt } from 'react-icons/fa';
 import { PseudocodeDisplay } from './PseudocodeDisplay';
-import type { OperationWithPseudocode } from '@/types/data-structure';
+import type { OperationWithPseudocode } from '@/types/operations';
 
 /**
  * A reusable overlay component for controlling step-by-step operations in any visualization system,
