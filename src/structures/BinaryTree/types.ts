@@ -1,4 +1,5 @@
-import type { DataStructureState, AnimationHint, DataStructureElement } from '@/types/data-structure';
+import type { DataStructureState, DataStructureElement } from '@/types/data-structure';
+import type { AnimationHint } from '@/types/animations';
 
 /**
  * Represents a node in a binary tree.

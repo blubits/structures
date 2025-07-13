@@ -1,4 +1,4 @@
-import type { AnimationHint } from '@/types/data-structure';
+import type { AnimationHint, AnimationMetadataSchema } from '@/types/animations';
 import type { GenericAnimationContext } from '@/lib/core/AnimationController';
 
 /**
@@ -8,10 +8,7 @@ export type AnimationHintDescriptor<Params extends object = any> = {
   type: string;
   create: (params: Params & { duration?: number }) => AnimationHint;
   animationFunction: (context: GenericAnimationContext) => void;
-  metadataSchema: {
-    validateMetadata: (metadata: Record<string, any>) => boolean;
-    extractTargets: (metadata: Record<string, any>) => string[];
-  };
+  metadataSchema: AnimationMetadataSchema;
   elementType: string;
 };
 

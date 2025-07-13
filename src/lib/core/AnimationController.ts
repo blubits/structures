@@ -2,7 +2,7 @@
  * Generic Animation Controller for any visualization type. Visualizations register their own animation types and provide corresponding animation functions and metadata schemas, enabling a flexible system for any visualization now or in the future.
  */
 
-import type { AnimationHint } from '@/types/data-structure';
+import type { AnimationHint, AnimationMetadataSchema, AnimationRegistration } from '@/types/animations';
 import { loggers } from '@/lib/core/Logger';
 
 /**
@@ -27,28 +27,6 @@ export interface GenericAnimationContext {
  * Function signature for generic animations.
  */
 export type GenericAnimationFunction = (context: GenericAnimationContext) => void;
-
-/**
- * Describes how to extract target information from animation hint metadata.
- */
-export interface AnimationMetadataSchema {
-  /** Custom validation function for the metadata */
-  validateMetadata?: (metadata: Record<string, any>) => boolean;
-  
-  /** Extract target identifiers from metadata - returns array of target identifiers */
-  extractTargets?: (metadata: Record<string, any>) => string[];
-}
-
-/**
- * Animation registration information including metadata schema.
- */
-export interface AnimationRegistration {
-  /** The animation function */
-  animationFunction: GenericAnimationFunction;
-  
-  /** Schema describing expected metadata format */
-  metadataSchema: AnimationMetadataSchema;
-}
 
 /**
  * Configuration for a visualization's animation support.

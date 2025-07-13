@@ -1,17 +1,11 @@
+import type { AnimationHint } from './animations';
+
 // Generic types for data structure visualization system
 
 /**
  * Base interface for all data structure states
  * Contains common visualization metadata
  */
-export interface AnimationHint {
-  type: string;
-  metadata?: Record<string, any>;
-  duration?: number;
-  delay?: number;
-  sequence?: number;
-}
-
 export interface DataStructureState {
   animationHints?: AnimationHint[];
   name?: string;
@@ -70,20 +64,6 @@ export interface OperationWithPseudocode extends Operation {
 export interface DataStructureElement {
   id?: string;
   metadata?: Record<string, any>;
-}
-
-export interface AnimationMetadataSchema {
-  targetType: 'node' | 'link' | 'tree';
-  nodeTargetFields?: string[];
-  linkSourceField?: string;
-  linkTargetField?: string;
-  validateMetadata?: (metadata: Record<string, any>) => boolean;
-  extractTargets?: (metadata: Record<string, any>) => string[];
-}
-
-export interface AnimationRegistration {
-  animationFunction: any; // Updated to generic type, since specific animation function types are removed
-  metadataSchema: AnimationMetadataSchema;
 }
 
 export function createOperation(

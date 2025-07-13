@@ -1,5 +1,5 @@
 import type { BinaryTreeNode, BinaryTree } from '@structures/BinaryTree/types';
-import type { AnimationHint } from '@/types/data-structure';
+import type { AnimationHint } from '@/types/animations';
 import { updateBinaryTreeNode } from '@structures/BinaryTree/types';
 import { traverseDown } from '@/structures/BinaryTree/animations';
 

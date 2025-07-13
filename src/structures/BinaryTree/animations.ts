@@ -12,7 +12,7 @@ import type {
   VisualizationAnimationConfig,
   GenericAnimationContext
 } from '@/lib/core/AnimationController';
-import type { AnimationHint } from '@/types/data-structure';
+import type { AnimationHint } from '@/types/animations';
 import { loggers } from '@/lib/core';
 import * as d3 from 'd3';
 import { BINARY_TREE_COLORS } from '@structures/BinaryTree/config.colors';
@@ -144,6 +144,7 @@ export const traverseDown = defineAnimationHint<TraverseDownParams>({
   }),
   animationFunction: traverseDownAnimation,
   metadataSchema: {
+    targetType: 'link',
     validateMetadata: (metadata) =>
       typeof metadata?.sourceValue === 'number' &&
       typeof metadata?.targetValue === 'number',
